@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BITFLIP-64 — Othello AI</title>
+  <meta name="description"
+        content="Play Othello against a WebAssembly alpha-beta AI with positional strategy, mobility evaluation, and a perfect endgame solver. Three difficulty levels." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <script>
+    // Register COI ServiceWorker to unlock crossOriginIsolated if needed
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('public/coi-serviceworker.js', { scope: '/' })
+        .catch(e => console.warn('SW registration failed:', e));
+    }
+  </script>
+</head>
+<body>
+  <main class="container">
+
+    <!-- ══ Header ══════════════════════════════════════════════════════════ -->
+    <header class="title-block">
+      <h1 class="lcd-title">BITFLIP<span class="lcd-dash">-</span>64</h1>
+      <p class="subtitle" id="subtitle">Alpha-Beta AI · Perfect Endgame Solver · Play as —</p>
+    </header>
+
+    <!-- ══ Side / Difficulty Select ════════════════════════════════════════ -->
+    <section class="side-select" id="side-select">
+      <div class="select-card">
+        <p class="select-label">Choose Difficulty</p>
+        <div class="difficulty-row" id="difficulty-row">
+          <button class="diff-btn" id="diff-easy"   data-diff="0">Easy</button>
+          <button class="diff-btn active" id="diff-medium" data-diff="1">Medium</button>
+          <button class="diff-btn" id="diff-hard"   data-diff="2">Hard</button>
+        </div>
+
+        <p class="select-label" style="margin-top:1.5rem">Choose Your Color</p>
+        <div class="color-row">
+          <button class="color-btn black-btn" id="play-black" onclick="startGame(1)">
+            <span class="disc-preview black-disc-prev"></span>
+            Play Black
+            <span class="color-note">moves first</span>
+          </button>
+          <button class="color-btn white-btn" id="play-white" onclick="startGame(2)">
+            <span class="disc-preview white-disc-prev"></span>
+            Play White
+            <span class="color-note">moves second</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ Game Board ═══════════════════════════════════════════════════════ -->
+    <section class="board-wrap" id="board-wrap" hidden>
+
+      <!-- Score bar -->
+      <div class="score-bar">
+        <div class="player-score" id="black-score-block">
+          <span class="disc-dot black-dot"></span>
+          <span class="player-label">Black</span>
+          <span class="disc-count" id="black-count">2</span>
+        </div>
+        <div class="score-center">
+          <span class="score-label">Discs</span>
+        </div>
+        <div class="player-score right-score" id="white-score-block">
+          <span class="disc-count" id="white-count">2</span>
+          <span class="player-label">White</span>
+          <span class="disc-dot white-dot"></span>
+        </div>
+      </div>
+
+      <!-- 8×8 Othello board -->
+      <div class="board-outer">
+        <div class="board" id="board"></div>
+      </div>
+
+      <!-- Status & move info -->
+      <div class="status-bar" id="status-bar">Your turn</div>
+      <div class="move-info" id="move-info"></div>
+
+      <!-- Controls -->
+      <div class="controls">
+        <button class="ctrl-btn resign-btn" id="resign-btn" onclick="onHumanResign()">Resign</button>
+        <button class="ctrl-btn replay-btn" id="replay-btn" hidden onclick="resetToSideSelect()">New Game</button>
+      </div>
+    </section>
+
+    <!-- ══ Engine status ════════════════════════════════════════════════════ -->
+    <div class="engine-status" id="engine-status">Loading engine…</div>
+
+  </main>
+
+  <!-- ══ End-game Modal ═══════════════════════════════════════════════════ -->
+  <div class="modal-backdrop" id="modal-backdrop" hidden>
+    <div class="modal">
+      <div class="modal-icon" id="modal-icon">🏆</div>
+      <h2 class="modal-title" id="modal-title">You Win!</h2>
+      <p class="modal-subtitle" id="modal-subtitle"></p>
+      <div class="modal-score-chip" id="modal-score-chip"></div>
+      <p class="modal-method" id="modal-method"></p>
+      <div class="modal-actions">
+        <button class="modal-btn primary" onclick="resetToSideSelect()">Play Again</button>
+        <button class="modal-btn secondary" onclick="closeModal()">View Board</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ Footer ═══════════════════════════════════════════════════════════ -->
+  <footer class="footer">
+    <a href="https://github.com/thodges314/BITFLIP64" target="_blank" rel="noopener">
+      Engine: C++ Alpha-Beta · Positional Weights · Perfect Endgame → WebAssembly
+    </a>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

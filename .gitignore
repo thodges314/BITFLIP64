@@ -1,0 +1,19 @@
+# Compiled engine output
+public/engine.js
+public/engine.wasm
+
+# Large dependencies
+*.gz
+
+# OS / editor
+.DS_Store
+.vscode/
+*.swp
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Logs
+*.log
+nohup.out

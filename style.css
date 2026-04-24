@@ -1,0 +1,548 @@
+/* ============================================================================
+   style.css — Bitflip-64 Othello
+   Dark theme with LCD amber title, green Othello board, disc flip animation
+   ============================================================================ */
+
+/* ── Google Fonts: Orbitron (LCD title) + Inter (UI) ───────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600&display=swap');
+
+/* ── Design tokens ──────────────────────────────────────────────────────────── */
+:root {
+  /* Board */
+  --board-bg:      #1a5c2a;
+  --board-line:    #217a38;
+  --cell-hover:    rgba(255, 255, 255, 0.12);
+  --legal-dot:     rgba(0, 220, 100, 0.55);
+
+  /* Discs */
+  --black-disc:    #0d0d0d;
+  --black-ring:    #444;
+  --white-disc:    #f0ede8;
+  --white-ring:    #bbb;
+
+  /* UI */
+  --bg:            #0d0f1a;
+  --surface:       #141626;
+  --surface-2:     #1c1f38;
+  --border:        rgba(255, 255, 255, 0.08);
+  --text:          #e8eaf0;
+  --text-muted:    #7a7f9a;
+  --accent:        #00d48a;   /* green */
+
+  /* LCD title amber */
+  --lcd-amber:     #ffb800;
+  --lcd-glow:      rgba(255, 184, 0, 0.6);
+
+  /* Difficulty */
+  --diff-easy:     #34d399;
+  --diff-medium:   #fbbf24;
+  --diff-hard:     #f87171;
+
+  --radius:        12px;
+  --radius-lg:     18px;
+  --shadow:        0 8px 32px rgba(0,0,0,0.5);
+}
+
+/* ── Reset & base ───────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { height: 100%; }
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.5rem 1rem 4rem;
+  background-image:
+    radial-gradient(ellipse 60% 40% at 50% -10%, rgba(0, 212, 138, 0.12) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 30% at 80% 80%,  rgba(255, 184, 0, 0.06)  0%, transparent 60%);
+}
+
+/* ── Layout container ───────────────────────────────────────────────────────── */
+.container {
+  width: 100%;
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+/* ── LCD Title ──────────────────────────────────────────────────────────────── */
+.title-block { text-align: center; }
+
+.lcd-title {
+  font-family: 'Orbitron', monospace;
+  font-weight: 900;
+  font-size: clamp(2.4rem, 10vw, 3.6rem);
+  letter-spacing: 0.08em;
+  display: inline-block;
+  transform: skewX(-10deg);
+  color: var(--lcd-amber);
+  text-shadow:
+    0 0 8px  var(--lcd-glow),
+    0 0 20px rgba(255, 184, 0, 0.35),
+    0 0 50px rgba(255, 184, 0, 0.15);
+  line-height: 1.1;
+  margin-bottom: 0.4rem;
+}
+
+.lcd-dash {
+  color: var(--accent);
+  text-shadow:
+    0 0 8px  rgba(0, 212, 138, 0.8),
+    0 0 20px rgba(0, 212, 138, 0.4);
+}
+
+.subtitle {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  font-weight: 400;
+}
+
+/* ── Side/Difficulty Select ─────────────────────────────────────────────────── */
+.select-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 2rem 1.8rem;
+  box-shadow: var(--shadow);
+  width: 100%;
+}
+
+.select-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 0.8rem;
+}
+
+/* Difficulty buttons */
+.difficulty-row {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.diff-btn {
+  flex: 1;
+  padding: 0.55rem 0;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.diff-btn:hover { border-color: var(--accent); color: var(--text); }
+.diff-btn.active[data-diff="0"] { border-color: var(--diff-easy);   color: var(--diff-easy);   background: rgba(52,211,153,0.1); }
+.diff-btn.active[data-diff="1"] { border-color: var(--diff-medium); color: var(--diff-medium); background: rgba(251,191,36,0.1); }
+.diff-btn.active[data-diff="2"] { border-color: var(--diff-hard);   color: var(--diff-hard);   background: rgba(248,113,113,0.1); }
+
+/* Color buttons */
+.color-row {
+  display: flex;
+  gap: 0.8rem;
+}
+
+.color-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.2rem 0.8rem;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.color-btn:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+.black-btn:hover { border-color: #888; }
+.white-btn:hover { border-color: var(--accent); }
+
+.disc-preview {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 50%;
+  display: block;
+}
+.black-disc-prev {
+  background: var(--black-disc);
+  box-shadow: 0 0 0 2px var(--black-ring), 0 4px 12px rgba(0,0,0,0.6);
+}
+.white-disc-prev {
+  background: var(--white-disc);
+  box-shadow: 0 0 0 2px var(--white-ring), 0 4px 12px rgba(0,0,0,0.4);
+}
+
+.color-note {
+  font-size: 0.68rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+/* ── Score bar ─────────────────────────────────────────────────────────────── */
+.score-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.8rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.player-score {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.right-score { flex-direction: row-reverse; }
+
+.disc-dot {
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.black-dot {
+  background: var(--black-disc);
+  box-shadow: 0 0 0 1.5px var(--black-ring);
+}
+.white-dot {
+  background: var(--white-disc);
+  box-shadow: 0 0 0 1.5px var(--white-ring);
+}
+
+.player-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.disc-count {
+  font-family: 'Orbitron', monospace;
+  font-weight: 700;
+  font-size: 1.6rem;
+  color: var(--text);
+  min-width: 2ch;
+  text-align: center;
+}
+
+.score-center {
+  text-align: center;
+}
+.score-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ── Board ──────────────────────────────────────────────────────────────────── */
+.board-outer {
+  width: 100%;
+  aspect-ratio: 1;
+  background: var(--board-bg);
+  border-radius: var(--radius);
+  padding: 0.6rem;
+  box-shadow:
+    var(--shadow),
+    0 0 0 1px rgba(255,255,255,0.05),
+    inset 0 1px 0 rgba(255,255,255,0.04);
+  border: 2px solid rgba(255,255,255,0.07);
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows:    repeat(8, 1fr);
+  width: 100%;
+  height: 100%;
+  gap: 1px;
+  background: var(--board-line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+/* ── Cell ───────────────────────────────────────────────────────────────────── */
+.cell {
+  background: var(--board-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: default;
+  transition: background 0.15s ease;
+}
+
+.cell.hoverable {
+  cursor: pointer;
+}
+.cell.hoverable:hover {
+  background: color-mix(in srgb, var(--board-bg) 75%, white);
+}
+
+/* ── Legal move dot ─────────────────────────────────────────────────────────── */
+.legal-dot {
+  width: 28%;
+  height: 28%;
+  border-radius: 50%;
+  background: var(--legal-dot);
+  pointer-events: none;
+  animation: legalPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes legalPulse {
+  0%, 100% { opacity: 0.5; transform: scale(0.85); }
+  50%       { opacity: 1;   transform: scale(1.1);  }
+}
+
+/* ── Discs ──────────────────────────────────────────────────────────────────── */
+.disc {
+  width: 84%;
+  height: 84%;
+  border-radius: 50%;
+  pointer-events: none;
+  position: relative;
+  /* 3D flip perspective */
+  transform-style: preserve-3d;
+}
+
+.disc.b-disc {
+  background: radial-gradient(circle at 35% 35%, #555, #0d0d0d);
+  box-shadow:
+    0 0 0 2px rgba(255,255,255,0.06),
+    inset 0 2px 4px rgba(255,255,255,0.12),
+    0 4px 8px rgba(0,0,0,0.7);
+}
+
+.disc.w-disc {
+  background: radial-gradient(circle at 35% 35%, #ffffff, #d8d5ce);
+  box-shadow:
+    0 0 0 2px rgba(0,0,0,0.1),
+    inset 0 2px 4px rgba(255,255,255,0.8),
+    0 4px 8px rgba(0,0,0,0.4);
+}
+
+/* ── Disc flip animations ────────────────────────────────────────────────────── */
+/* Black → White flip */
+@keyframes flipBW {
+  0%   { transform: rotateY(0deg);   }
+  45%  { transform: rotateY(90deg);  }
+  55%  { transform: rotateY(90deg);  }
+  100% { transform: rotateY(0deg);   }
+}
+/* White → Black flip */
+@keyframes flipWB {
+  0%   { transform: rotateY(0deg);   }
+  45%  { transform: rotateY(-90deg); }
+  55%  { transform: rotateY(-90deg); }
+  100% { transform: rotateY(0deg);   }
+}
+
+/* New disc placement */
+@keyframes discPlace {
+  0%   { transform: scale(0.3); opacity: 0; }
+  70%  { transform: scale(1.08); }
+  100% { transform: scale(1);   opacity: 1; }
+}
+
+.disc.anim-place { animation: discPlace 0.2s ease-out forwards; }
+.disc.anim-flip-bw { animation: flipBW 0.35s ease-in-out forwards; }
+.disc.anim-flip-wb { animation: flipWB 0.35s ease-in-out forwards; }
+
+/* ── Thinking state ─────────────────────────────────────────────────────────── */
+.board-outer.thinking-active {
+  box-shadow:
+    var(--shadow),
+    0 0 0 2px rgba(0, 212, 138, 0.4),
+    0 0 20px rgba(0, 212, 138, 0.15);
+  transition: box-shadow 0.3s ease;
+}
+
+.cell.thinking { opacity: 0.75; }
+
+/* ── Status / move info ─────────────────────────────────────────────────────── */
+.status-bar {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text);
+  text-align: center;
+  padding: 0.5rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  width: 100%;
+  min-height: 2.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.status-bar.your-turn  { border-color: var(--accent);  color: var(--accent);  }
+.status-bar.cpu-turn   { border-color: var(--lcd-amber); }
+.status-bar.b-wins     { border-color: #444;  }
+.status-bar.w-wins     { border-color: #bbb;  }
+
+.thinking-dots span {
+  display: inline-block;
+  animation: dot 1.2s infinite;
+}
+.thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+.thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dot { 0%,80%,100% { opacity: 0; } 40% { opacity: 1; } }
+
+.move-info {
+  font-size: 0.75rem;
+  font-family: 'Orbitron', monospace;
+  font-weight: 400;
+  color: var(--text-muted);
+  text-align: center;
+  letter-spacing: 0.04em;
+  min-height: 1.2rem;
+  transition: opacity 0.2s;
+}
+.move-info.update { animation: infoFlash 0.25s ease; }
+@keyframes infoFlash { 0% { opacity: 0.3; } 100% { opacity: 1; } }
+
+/* ── Controls ───────────────────────────────────────────────────────────────── */
+.controls {
+  display: flex;
+  gap: 0.6rem;
+  width: 100%;
+}
+
+.ctrl-btn {
+  flex: 1;
+  padding: 0.7rem;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.ctrl-btn:hover:not(:disabled) { background: var(--surface-2); }
+.ctrl-btn:disabled { opacity: 0.4; cursor: default; }
+
+.resign-btn:hover:not(:disabled) { border-color: #f87171; color: #f87171; }
+.replay-btn { border-color: var(--accent); color: var(--accent); }
+.replay-btn:hover { background: rgba(0, 212, 138, 0.1); }
+
+/* ── Engine status ──────────────────────────────────────────────────────────── */
+.engine-status {
+  font-size: 0.7rem;
+  font-family: 'Orbitron', monospace;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  text-align: center;
+}
+.engine-status.ready { color: var(--accent); }
+.engine-status.error { color: #f87171; }
+
+/* ── Modal ──────────────────────────────────────────────────────────────────── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  animation: fadeIn 0.25s ease;
+}
+.modal-backdrop[hidden] { display: none; }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 2.5rem 2rem;
+  max-width: 360px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.7);
+  animation: modalIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes modalIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.modal-icon    { font-size: 3rem; margin-bottom: 0.5rem; }
+.modal-title   { font-family: 'Orbitron', monospace; font-weight: 700; font-size: 1.4rem; margin-bottom: 0.5rem; }
+.modal-subtitle { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem; }
+
+.modal-score-chip {
+  display: inline-block;
+  padding: 0.35rem 1rem;
+  border-radius: 999px;
+  font-family: 'Orbitron', monospace;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.6rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.modal-score-chip.b-wins { border-color: #555; color: #ccc; }
+.modal-score-chip.w-wins { border-color: var(--accent); color: var(--accent); }
+.modal-score-chip.draw   { border-color: var(--lcd-amber); color: var(--lcd-amber); }
+
+.modal-method  { font-size: 0.72rem; color: var(--text-muted); margin-bottom: 1.5rem; }
+
+.modal-actions { display: flex; gap: 0.6rem; justify-content: center; }
+.modal-btn {
+  padding: 0.6rem 1.4rem;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.modal-btn.primary   { background: var(--accent); border-color: var(--accent); color: #000; }
+.modal-btn.primary:hover { filter: brightness(1.1); }
+.modal-btn.secondary { background: transparent; color: var(--text); }
+.modal-btn.secondary:hover { background: var(--surface-2); }
+
+/* ── Footer ─────────────────────────────────────────────────────────────────── */
+.footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  text-align: center;
+  padding: 0.5rem;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  background: linear-gradient(to top, var(--bg), transparent);
+}
+.footer a { color: inherit; text-decoration: none; }
+.footer a:hover { color: var(--accent); }

@@ -3,18 +3,19 @@
 //
 // Algorithm: Iterative-deepening alpha-beta negamax with:
 //   • Positional weight table (corners >> edges >> interior >> X-squares)
-//   • Mobility bonus (own legal moves − opponent legal moves)
-//   • Frontier disc penalty & edge stability bonus
+//   • Mobility bonus, frontier disc penalty, edge stability bonus
 //   • Transposition table (1M entries, Zobrist-keyed)
 //   • Aspiration windows (narrows α-β window using previous iteration score)
+//   • Principal Variation Search (PVS / Negascout)
+//   • Killer move heuristic (2 killers per depth, promoted above history)
 //   • History heuristic (cutoff moves sorted to front at each depth)
-//   • Move ordering: TT move first, then history score, then MOVE_ORDER
+//   • Move ordering: TT move → killers → history score → MOVE_ORDER
 //   • Perfect endgame solver when empty ≤ endgame threshold
 //
 // Difficulty levels:
 //   0 = Easy   — depth 3 fixed, no endgame solver
 //   1 = Medium  — iterative deepening ~1.2 s, perfect solve ≤10 empty
-//   2 = Hard    — iterative deepening ~3.0 s, perfect solve ≤20 empty
+//   2 = Hard    — iterative deepening ~4.0 s, perfect solve ≤22 empty
 // ============================================================================
 #pragma once
 #include "OthelloBoard.hpp"
@@ -81,7 +82,12 @@ public:
 
     // History heuristic: tracks how often each square (0-63) caused a
     // beta cutoff, weighted by depth².  Reset each call to getBestMove.
-    int  history[64]   = {};
+    int  history[64]    = {};
+
+    // Killer move heuristic: up to 2 moves per depth that recently caused
+    // a beta cutoff.  Promoted above history-sorted moves in orderedMoves.
+    // Stored as killers[depth][slot]; -1 = empty.  Reset each call.
+    int  killers[64][2] = {};
 
     // ── Public API ────────────────────────────────────────────────────────────
     // Returns best cell index (0–63) or OthelloBoard::PASS.
@@ -213,21 +219,43 @@ private:
     }
 
     // ── Ordered move iteration ────────────────────────────────────────────────
-    // Priority: (1) TT best move, (2) history score descending,
-    // (3) static MOVE_ORDER (corners → edges → interior → X-squares).
-    std::vector<int> orderedMoves(uint64_t legalMask, int ttMove = -1) const {
+    // Priority: (1) TT best move, (2) killer moves for this depth,
+    // (3) history score descending, (4) static MOVE_ORDER as tiebreaker.
+    std::vector<int> orderedMoves(uint64_t legalMask, int ttMove = -1, int depth = -1) const {
         std::vector<int> moves;
         moves.reserve(__builtin_popcountll(legalMask));
-        if (ttMove >= 0 && ttMove < 64 && (legalMask >> ttMove & 1))
+        bool inList[64] = {};
+
+        // 1. TT best move.
+        if (ttMove >= 0 && ttMove < 64 && (legalMask >> ttMove & 1)) {
             moves.push_back(ttMove);
+            inList[ttMove] = true;
+        }
+
+        // 2. Killer moves (depth-keyed; promoted above history-sorted moves).
+        if (depth >= 0 && depth < 64) {
+            for (int k = 0; k < 2; k++) {
+                int km = killers[depth][k];
+                if (km >= 0 && km < 64 && (legalMask >> km & 1) && !inList[km]) {
+                    moves.push_back(km);
+                    inList[km] = true;
+                }
+            }
+        }
+
+        // Priority front: TT + killers are already in correct order.
+        int priority = (int)moves.size();
+
+        // 3. Remaining moves in static MOVE_ORDER.
         for (int c : MOVE_ORDER)
-            if ((legalMask >> c & 1) && c != ttMove)
+            if ((legalMask >> c & 1) && !inList[c])
                 moves.push_back(c);
-        // Sort non-TT moves by history score (descending).
+
+        // Sort non-priority section by history score descending.
         // stable_sort preserves MOVE_ORDER as tiebreaker.
-        int offset = (!moves.empty() && moves[0] == ttMove) ? 1 : 0;
-        std::stable_sort(moves.begin() + offset, moves.end(),
+        std::stable_sort(moves.begin() + priority, moves.end(),
             [this](int a, int b) { return history[a] > history[b]; });
+
         return moves;
     }
 
@@ -333,15 +361,31 @@ private:
         int best = INT_MIN;
         int bestMove = -1;
         int origAlpha = alpha;
+        bool firstChild = true;
 
-        for (int cell : orderedMoves(legalMask, ttMove)) {
-            int val = -negamax(board.afterMove(cell, isBlack), !isBlack, depth - 1, -beta, -alpha, endgameThresh);
+        for (int cell : orderedMoves(legalMask, ttMove, depth)) {
+            int val;
+            if (firstChild) {
+                // First (best-ordered) child: full-window search.
+                val = -negamax(board.afterMove(cell, isBlack), !isBlack, depth - 1, -beta, -alpha, endgameThresh);
+                firstChild = false;
+            } else {
+                // PVS: null-window probe.
+                val = -negamax(board.afterMove(cell, isBlack), !isBlack, depth - 1, -(alpha + 1), -alpha, endgameThresh);
+                // Re-search with full window only if null-window fails high.
+                if (!timeLimitHit && val > alpha && val < beta)
+                    val = -negamax(board.afterMove(cell, isBlack), !isBlack, depth - 1, -beta, -alpha, endgameThresh);
+            }
             if (timeLimitHit) return 0;
             if (val > best) { best = val; bestMove = cell; }
             if (val > alpha) alpha = val;
             if (alpha >= beta) {
-                // Beta cutoff — reward this move in the history table.
+                // Beta cutoff — update history and killer tables.
                 history[cell] += depth * depth;
+                if (depth < 64 && killers[depth][0] != cell) {
+                    killers[depth][1] = killers[depth][0];
+                    killers[depth][0] = cell;
+                }
                 break;
             }
         }
@@ -367,6 +411,7 @@ private:
 
         ttClear();
         std::fill(std::begin(history), std::end(history), 0);
+        std::memset(killers, -1, sizeof(killers));
         int bestMove  = __builtin_ctzll(legalMask);
         int prevScore = 0;   // score from the previous completed iteration
 
@@ -399,8 +444,19 @@ private:
                 bestScore   = INT_MIN;
                 int searchAlpha = alpha;
 
+                bool firstChild = true;
                 for (int cell : orderedMoves(legalMask, bestMove)) {
-                    int val = -negamax(board.afterMove(cell, isBlack), !isBlack, depth - 1, -beta, -searchAlpha, endgameThresh);
+                    int val;
+                    if (firstChild) {
+                        val = -negamax(board.afterMove(cell, isBlack), !isBlack, depth - 1, -beta, -searchAlpha, endgameThresh);
+                        firstChild = false;
+                    } else {
+                        // PVS: null-window probe.
+                        val = -negamax(board.afterMove(cell, isBlack), !isBlack, depth - 1, -(searchAlpha + 1), -searchAlpha, endgameThresh);
+                        // Re-search if null-window fails high inside the aspiration window.
+                        if (!timeLimitHit && val > searchAlpha && val < beta)
+                            val = -negamax(board.afterMove(cell, isBlack), !isBlack, depth - 1, -beta, -searchAlpha, endgameThresh);
+                    }
                     if (timeLimitHit) break;
                     if (val > bestScore) { bestScore = val; bestAtDepth = cell; }
                     if (val > searchAlpha) searchAlpha = val;

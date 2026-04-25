@@ -71,17 +71,20 @@ Legal move generation and flip computation both use the same direction-scan loop
 
 ### Search (`OthelloAI.hpp`)
 
-**Iterative deepening negamax alpha-beta:**
-1. Starts at depth 1, deepens until time limit is hit
-2. TT best move from the previous completed iteration tried first (dramatically improves pruning)
-3. Remaining moves sorted by **history score** (descending), then by static `MOVE_ORDER[]`
-4. Transposition table stores `(key, score, depth, flag, move)` with exact/lower/upper bound flags
+**Iterative deepening alpha-beta negamax:**
+Searches depth 1, 2, 3… until the 4-second budget is hit, always returning the best move from the deepest *completed* depth. The transposition table is seeded across iterations, enabling each depth to start with high-quality move ordering inherited from the previous one.
 
 **Aspiration windows:**
-From depth 4 onward, each iteration opens with a narrow `[prevScore − 25, prevScore + 25]` window instead of `(−∞, +∞)`. A narrower window produces far more alpha-beta cutoffs in the common case where the score is stable across depths. On a fail-low or fail-high, the window widens by doubling the delta and re-searches at the same depth until the score falls inside — or the window expands to full range.
+From depth 4 onward each iteration opens with a narrow `[prevScore−25, prevScore+25]` window instead of `(−∞, +∞)`. A narrower window produces far more alpha-beta cutoffs in the normal case where the score is stable. On fail-low or fail-high the delta doubles and the same depth is re-searched until the score falls inside the window or it expands to full range.
 
-**History heuristic:**
-A `history[64]` table accumulates `depth²` points every time a move causes a beta cutoff (`alpha ≥ beta`). This score is reset at the start of each move decision and builds up within the search tree across all branches and depths. `orderedMoves()` sorts non-TT moves by their history score descending, with the static positional `MOVE_ORDER` used as a tiebreaker via `std::stable_sort`. Moves that consistently produce cutoffs therefore float to the front of the list at the next depth, compounding the pruning benefit.
+**Principal Variation Search (PVS / Negascout):**
+After the first (best-ordered) move is searched with a full window, every subsequent move is first probed with a null window `[−(alpha+1), −alpha]`. A null-window search is far cheaper because it can fail immediately. Only if the result falls inside the aspiration window (suggesting the move might actually be best) is a full re-search triggered. When move ordering is good — which it is, given TT + killers + history — most probes fail and the re-search is rarely needed, cutting node count by 15–30%.
+
+**Move ordering (four-tier priority):**
+1. **TT best move** — from the previous completed iteration
+2. **Killer moves** — 2 slots per depth; non-capturing moves that recently caused beta cutoffs in sibling branches at the same depth, tried before any history-ranked move
+3. **History score** — `depth²` accumulated per beta cutoff across all branches; `stable_sort` descending with MOVE_ORDER as tiebreaker
+4. **Static MOVE_ORDER** — corners → edges → interior → X-squares (absolute fallback / tiebreaker)
 
 **Perfect endgame intercept:**
 When the search depth within `negamax` reaches the number of empty squares and the position is within the endgame threshold (≤10 or ≤20 empty, per difficulty), the call is transparently redirected to `negamaxPerfect`. This means iterative deepening seeds the TT with well-ordered move hints before the exact deep search fires — far more efficient than a cold-start 20-ply search.

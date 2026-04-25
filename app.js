@@ -362,7 +362,6 @@ function buildBoard() {
 // animNew:   Set of cell indices for newly placed discs (place animation).
 function renderBoard(animFlips = new Set(), animNew = new Set()) {
   const legalMoves = !gameOver ? new Set(getLegalMovesJS(cells, humanPlayer)) : new Set();
-  const cpuLegal = !gameOver ? getLegalMovesJS(cells, cpuPlayer).length > 0 : false;
 
   for (let i = 0; i < CELLS; i++) {
     const cell = document.getElementById(`cell-${i}`);
@@ -452,7 +451,6 @@ function endGame(method = 'score') {
     scoreClass = 'draw';
   } else if (humanWins) {
     SoundFX.playWin();
-    const leader = blackWins ? 'Black' : 'White';
     const extra = bCount > wCount ? bCount + ' – ' + wCount : wCount + ' – ' + bCount;
     setStatus(method === 'resignation' ? 'Computer resigns — you win! 🎉'
       : `You win! 🎉  ${extra}`,

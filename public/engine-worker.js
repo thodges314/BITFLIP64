@@ -25,15 +25,19 @@ let engine = null;  // WASM module instance
 let bufPtr  = null; // malloc'd Int32[64] in WASM heap
                     // (no cached view — HEAP32 accessed live to survive memory growth)
 
-// Resolve WASM assets relative to THIS worker's URL, not the page URL.
+// Resolve WASM assets relative to THIS worker's URL.
+// Forward the ?v= cache-buster from the worker URL to engine.js and engine.wasm
+// so that a single version bump in app.js invalidates ALL three files at once.
 const BASE = self.location.href.replace(/[^/]*$/, '');
+const _v   = new URLSearchParams(self.location.search).get('v') || '';
+const _vs  = _v ? `?v=${_v}` : '';
 
 async function init() {
   try {
-    importScripts(`${BASE}engine.js`);
+    importScripts(`${BASE}engine.js${_vs}`);
 
     engine = await createEngineModule({
-      locateFile: path => `${BASE}${path}`,
+      locateFile: path => `${BASE}${path}${_vs}`,
     });
 
     engine.ccall('wasm_init', null, [], []);

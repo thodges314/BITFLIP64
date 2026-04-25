@@ -165,7 +165,7 @@ public:
         switch (difficulty) {
             case 0:  timeLimitMs = 200;  endgameThresh =  0; maxDepth =  3; break;
             case 1:  timeLimitMs = 1200; endgameThresh = 10; maxDepth = 60; break;
-            default: timeLimitMs = 4000; endgameThresh = 26; maxDepth = 60; break;
+            default: timeLimitMs = 5000; endgameThresh = 26; maxDepth = 60; break;
         }
 
         return getBestMoveAB(board, isBlack, maxDepth, endgameThresh);

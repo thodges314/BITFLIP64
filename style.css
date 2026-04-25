@@ -692,7 +692,7 @@ body {
   width: 100%;
   max-width: 520px;
   text-align: center;
-  padding: 0.6rem 0.5rem;
+  padding: 1.4rem 0.5rem 0.6rem;
   margin-top: auto;          /* stays at bottom when content is short */
   font-size: 0.65rem;
   color: var(--text-muted);

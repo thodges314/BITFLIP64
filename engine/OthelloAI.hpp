@@ -348,22 +348,72 @@ private:
             return __builtin_ctzll(legalMask);
 
         ttClear();
-        int bestMove = __builtin_ctzll(legalMask); 
+        int bestMove  = __builtin_ctzll(legalMask);
+        int prevScore = 0;   // score from the previous completed iteration
+
+        // Initial aspiration window half-width.
+        // Chosen to be wider than typical eval noise at shallow depth but
+        // narrow enough to produce meaningful cutoffs in the midgame.
+        static constexpr int ASPIRATION_DELTA = 25;
 
         for (int depth = 1; depth <= maxDepth && !timeLimitHit; depth++) {
-            int alpha = INT_MIN + 1, beta = INT_MAX;
-            int bestAtDepth = -1;
-            int bestScore   = INT_MIN;
 
-            for (int cell : orderedMoves(legalMask, bestMove)) {
-                int val = -negamax(board.afterMove(cell, isBlack), !isBlack, depth - 1, -beta, -alpha, endgameThresh);
-                if (timeLimitHit) break;
-                if (val > bestScore) { bestScore = val; bestAtDepth = cell; }
-                if (val > alpha) alpha = val;
+            int alpha, beta;
+
+            // Aspiration windows are only useful once the score is stable
+            // enough to be predictive.  Use a full window for depth ≤ 3.
+            if (depth <= 3 || prevScore == 0) {
+                alpha = INT_MIN + 1;
+                beta  = INT_MAX;
+            } else {
+                alpha = prevScore - ASPIRATION_DELTA;
+                beta  = prevScore + ASPIRATION_DELTA;
             }
 
-            if (!timeLimitHit && bestAtDepth >= 0)
-                bestMove = bestAtDepth;
+            int bestAtDepth = -1;
+            int bestScore   = INT_MIN;
+            int delta       = ASPIRATION_DELTA;
+
+            // Re-search loop — widens the window on fail-low / fail-high.
+            while (true) {
+                bestAtDepth = -1;
+                bestScore   = INT_MIN;
+                int searchAlpha = alpha;
+
+                for (int cell : orderedMoves(legalMask, bestMove)) {
+                    int val = -negamax(board.afterMove(cell, isBlack), !isBlack, depth - 1, -beta, -searchAlpha, endgameThresh);
+                    if (timeLimitHit) break;
+                    if (val > bestScore) { bestScore = val; bestAtDepth = cell; }
+                    if (val > searchAlpha) searchAlpha = val;
+                }
+
+                if (timeLimitHit) break;
+
+                if (bestScore <= alpha) {
+                    // Fail-low: the position is worse than expected.
+                    // Widen alpha downward and retry.
+                    delta *= 2;
+                    alpha = bestScore - delta;
+                    if (alpha < INT_MIN + 1) alpha = INT_MIN + 1;
+                } else if (bestScore >= beta) {
+                    // Fail-high: the position is better than expected.
+                    // Widen beta upward and retry.
+                    delta *= 2;
+                    beta = bestScore + delta;
+                    if (beta > INT_MAX) beta = INT_MAX;
+                } else {
+                    // Score fell inside the window — search succeeded.
+                    break;
+                }
+
+                // Safety: if window has expanded to full range, just accept.
+                if (alpha <= INT_MIN + 1 && beta >= INT_MAX) break;
+            }
+
+            if (!timeLimitHit && bestAtDepth >= 0) {
+                bestMove  = bestAtDepth;
+                prevScore = bestScore;
+            }
         }
 
         return bestMove;

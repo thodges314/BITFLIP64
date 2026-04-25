@@ -69,7 +69,7 @@ struct TTEntry {
     int8_t   move  = -1;  // best move cell (0–63) or 64=pass
 };
 
-static constexpr size_t TT_SIZE = 1 << 20;  // ~1M entries
+static constexpr size_t TT_SIZE = 1 << 23;  // ~8M entries (128MB)
 static TTEntry g_tt[TT_SIZE];
 
 inline TTEntry* ttLookup(uint64_t key) { return &g_tt[key & (TT_SIZE - 1)]; }

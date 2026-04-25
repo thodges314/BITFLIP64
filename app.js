@@ -510,12 +510,12 @@ function checkGameOver() {
 async function cpuTurn() {
   if (gameOver) return;
 
-  // Check if CPU must pass
+  // ── JS fast-check: if JS also finds no CPU moves, skip WASM call ────────────
   if (getLegalMovesJS(cells, cpuPlayer).length === 0) {
     SoundFX.playPass();
     setMoveInfo('⏭ Computer has no moves — passes');
-    if (checkGameOver()) return;   // both pass → end game
-    renderBoard();                  // MUST refresh dots so human can see legal moves
+    if (getLegalMovesJS(cells, humanPlayer).length === 0) { endGame('score'); return; }
+    renderBoard();
     setStatus('Your turn — computer passed', 'your-turn');
     return;
   }
@@ -548,7 +548,10 @@ async function cpuTurn() {
     SoundFX.playPass();
     moveHistory.push({ player: cpuPlayer, move: PASS_MOVE });
     setMoveInfo(`⏭ Computer passes · ${ms} ms`);
-    if (checkGameOver()) return;
+    // If human also has no moves, game ends (board is stuck).
+    // Check directly; don't rely on JS/WASM consistency via checkGameOver().
+    if (getLegalMovesJS(cells, humanPlayer).length === 0) { endGame('score'); return; }
+    renderBoard();   // refresh legal-move dots for human
     setStatus('Your turn — computer passed', 'your-turn');
     return;
   }
@@ -572,7 +575,7 @@ async function cpuTurn() {
   if (getLegalMovesJS(cells, humanPlayer).length === 0) {
     SoundFX.playPass();
     setMoveInfo('⏭ You have no moves — auto-pass');
-    if (checkGameOver()) return;   // double-pass → end game
+    if (getLegalMovesJS(cells, cpuPlayer).length === 0) { endGame('score'); return; }
     setStatus('Thinking…', 'cpu-turn');
     setTimeout(cpuTurn, 800);
     return;

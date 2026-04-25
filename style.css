@@ -574,6 +574,50 @@ body {
 .modal-btn.secondary { background: transparent; color: var(--text); }
 .modal-btn.secondary:hover { background: var(--surface-2); }
 
+/* ── Tech stack badges ──────────────────────────────────────────────────────── */
+.tech-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 1.2rem;
+  justify-content: center;
+}
+
+.tech-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.22rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-muted);
+}
+
+.wasm-badge {
+  border-color: var(--lcd-amber);
+  color: var(--lcd-amber);
+  background: rgba(255, 184, 0, 0.08);
+  text-shadow: 0 0 8px rgba(255, 184, 0, 0.4);
+}
+
+/* Footer WASM pill */
+.footer-wasm-badge {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  background: rgba(0, 212, 138, 0.1);
+  vertical-align: middle;
+}
+
 /* ── Footer ─────────────────────────────────────────────────────────────────── */
 .footer {
   position: fixed;

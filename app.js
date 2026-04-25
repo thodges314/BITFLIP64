@@ -695,7 +695,11 @@ async function initEngine() {
     // Note: COI ServiceWorker is loaded but alpha-beta is single-threaded,
     // so crossOriginIsolated is not strictly required. We skip the reload
     // check from TENGEN5 since there are no pthreads.
-    engineWorker = new Worker('public/engine-worker.js');
+    // The ?v= cache-buster ensures the browser always loads the current worker
+    // script. Update this string on every engine-worker.js deployment to avoid
+    // mismatches between a stale worker and freshly-built WASM.
+    const WORKER_VERSION = '20250425-3';
+    engineWorker = new Worker(`public/engine-worker.js?v=${WORKER_VERSION}`);
 
     await new Promise((resolve, reject) => {
       const timeout = setTimeout(

@@ -59,18 +59,16 @@ self.onmessage = function ({ data }) {
       const base = bufPtr >> 2;  // byte offset → Int32 index
       for (let i = 0; i < CELLS; i++) engine.HEAP32[base + i] = cells[i];
 
-      // Run alpha-beta search (or instant book lookup).
-      // Return value encoding:
-      //   bits 0-6 : move cell (0-63) or 64 (PASS) or -1 (error)
-      //   bit  8   : set if the move came from the opening book
-      const raw      = engine.ccall(
+      // Run alpha-beta search (or instant opening book lookup).
+      const move = engine.ccall(
         'wasm_getBestMove', 'number',
         ['number', 'number', 'number'],
         [bufPtr, isBlack ? 1 : 0, difficulty]
       );
 
-      const fromBook = (raw & 0x100) !== 0;
-      const move     = raw & ~0x100;   // strip book flag → clean cell index
+      // Query the book-hit flag (single global bool set during the call above).
+      // This must be called before any other AI function to avoid stale state.
+      const fromBook = engine.ccall('wasm_wasBookMove', 'number', [], []) === 1;
 
       self.postMessage({ id, type: 'bestMove', payload: { move, fromBook } });
     }

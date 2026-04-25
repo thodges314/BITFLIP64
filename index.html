@@ -25,6 +25,14 @@
     <header class="title-block">
       <h1 class="lcd-title">BITFLIP<span class="lcd-dash">-</span>64</h1>
       <p class="subtitle" id="subtitle">Alpha-Beta AI · Perfect Endgame Solver · Play as —</p>
+      <div class="audio-bar">
+        <button class="audio-toggle active" id="sfx-toggle" title="Sound effects on/off">
+          <span id="sfx-icon">🔊</span><span class="atog-label"> SFX</span>
+        </button>
+        <button class="audio-toggle" id="music-toggle" title="Cyber-baroque music on/off">
+          <span id="music-icon">🎵</span><span class="atog-label"> Music</span>
+        </button>
+      </div>
     </header>
 
     <!-- ══ Side / Difficulty Select ════════════════════════════════════════ -->
@@ -41,12 +49,12 @@
         <div class="color-row">
           <button class="color-btn black-btn" id="play-black" onclick="startGame(1)">
             <span class="disc-preview black-disc-prev"></span>
-            Play Black
+            <span class="btn-label">Play Black</span>
             <span class="color-note">moves first</span>
           </button>
           <button class="color-btn white-btn" id="play-white" onclick="startGame(2)">
             <span class="disc-preview white-disc-prev"></span>
-            Play White
+            <span class="btn-label">Play White</span>
             <span class="color-note">moves second</span>
           </button>
         </div>

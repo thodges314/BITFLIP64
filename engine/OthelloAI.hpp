@@ -20,11 +20,13 @@
 // ============================================================================
 #pragma once
 #include "OthelloBoard.hpp"
+#include "opening_book.hpp"
 #include <algorithm>
 #include <array>
 #include <chrono>
 #include <climits>
 #include <cstring>
+#include <tuple>
 #include <vector>
 
 // ── Positional weight table ───────────────────────────────────────────────────
@@ -89,6 +91,66 @@ public:
     // a beta cutoff.  Promoted above history-sorted moves in orderedMoves.
     // Stored as killers[depth][slot]; -1 = empty.  Reset each call.
     int  killers[64][2] = {};
+
+    // ── D4 symmetry utilities for opening book ────────────────────────────────
+    // 8 isometries of the square (identity, 3 rotations, 4 reflections).
+    // Used to normalise a board position to its lexicographically smallest
+    // equivalent orientation (canonical form) before book lookup.
+    //
+    // transform index:  0=id  1=r90CW  2=r180  3=r270CW
+    //                   4=flipH  5=flipV  6=transposeMain  7=transposeAnti
+    static constexpr int INVERSE_T[8] = {0, 3, 2, 1, 4, 5, 6, 7};
+
+    static uint64_t transformMask(uint64_t mask, int t) noexcept {
+        uint64_t result = 0;
+        for (uint64_t m = mask; m; ) {
+            uint64_t bit  = m & (-m);  m ^= bit;
+            int cell      = __builtin_ctzll(bit);
+            int r = cell >> 3, c = cell & 7, nr, nc;
+            switch (t) {
+                case 0: nr=r;   nc=c;   break;
+                case 1: nr=c;   nc=7-r; break;
+                case 2: nr=7-r; nc=7-c; break;
+                case 3: nr=7-c; nc=r;   break;
+                case 4: nr=7-r; nc=c;   break;
+                case 5: nr=r;   nc=7-c; break;
+                case 6: nr=c;   nc=r;   break;
+                default:nr=7-c; nc=7-r; break;
+            }
+            result |= 1ULL << (nr*8+nc);
+        }
+        return result;
+    }
+
+    // Returns (canon_black, canon_white, transform_index).
+    // canon = lexicographically smallest (black,white) pair across all 8 D4 transforms.
+    static std::tuple<uint64_t,uint64_t,int>
+    canonForm(uint64_t black, uint64_t white) noexcept {
+        uint64_t best_b = black, best_w = white;  int best_t = 0;
+        for (int t = 1; t < 8; ++t) {
+            uint64_t tb = transformMask(black, t);
+            uint64_t tw = transformMask(white, t);
+            if (tb < best_b || (tb == best_b && tw < best_w)) {
+                best_b = tb; best_w = tw; best_t = t;
+            }
+        }
+        return {best_b, best_w, best_t};
+    }
+
+    static int applyTransformCell(int cell, int t) noexcept {
+        int r = cell >> 3, c = cell & 7, nr, nc;
+        switch (t) {
+            case 0: nr=r;   nc=c;   break;
+            case 1: nr=c;   nc=7-r; break;
+            case 2: nr=7-r; nc=7-c; break;
+            case 3: nr=7-c; nc=r;   break;
+            case 4: nr=7-r; nc=c;   break;
+            case 5: nr=r;   nc=7-c; break;
+            case 6: nr=c;   nc=r;   break;
+            default:nr=7-c; nc=7-r; break;
+        }
+        return nr*8+nc;
+    }
 
     // ── Public API ────────────────────────────────────────────────────────────
     // Returns best cell index (0–63) or OthelloBoard::PASS.
@@ -435,6 +497,20 @@ private:
 
         if (__builtin_popcountll(legalMask) == 1)
             return __builtin_ctzll(legalMask);
+
+        // ── Opening book probe ────────────────────────────────────────────────
+        // Only active for the first MAX_DEPTH=24 moves (empty ≥ 36).
+        // Compute canonical D4 form, look up in book, reverse transform.
+        if (board.emptyCount() >= 36) {
+            auto [cb, cw, t] = canonForm(board.black, board.white);
+            uint64_t key = OpeningBook::hash_pos(cb, cw);
+            int canon_cell  = OpeningBook::lookup(key);
+            if (canon_cell >= 0) {
+                int actual_cell = applyTransformCell(canon_cell, INVERSE_T[t]);
+                if (legalMask >> actual_cell & 1)
+                    return actual_cell;   // instant book move
+            }
+        }
 
         ttClear();
         std::fill(std::begin(history), std::end(history), 0);

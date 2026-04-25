@@ -346,6 +346,23 @@ private:
     // Exact disc-count negamax; no evaluation function, just terminal score.
     int negamaxPerfect(const OthelloBoard& board, bool isBlack, int alpha, int beta) {
         nodesSearched++;
+
+        // TT probe
+        uint64_t key = board.hashKey() ^ (isBlack ? 0xAAAAAAAAAAAAAAAAULL : 0);
+        TTEntry* tte = ttLookup(key);
+        int ttMove = -1;
+        
+        // Depth 64 signifies branch is solved completely to a terminal node
+        if (tte->key == key && tte->depth >= 64) {
+            if (tte->flag == 0) return tte->score;
+            if (tte->flag == 1) alpha = std::max(alpha, tte->score);
+            if (tte->flag == 2) beta  = std::min(beta,  tte->score);
+            if (alpha >= beta)  return tte->score;
+            ttMove = tte->move;
+        } else if (tte->key == key) {
+            ttMove = tte->move;
+        }
+
         uint64_t legalMask = board.getLegalMoves(isBlack);
 
         if (legalMask == 0) {
@@ -357,12 +374,23 @@ private:
         }
 
         int best = INT_MIN;
-        for (int cell : orderedMoves(legalMask)) {
+        int bestMove = -1;
+        int origAlpha = alpha;
+
+        for (int cell : orderedMoves(legalMask, ttMove)) {
             int val = -negamaxPerfect(board.afterMove(cell, isBlack), !isBlack, -beta, -alpha);
-            if (val > best) best = val;
+            if (val > best) { best = val; bestMove = cell; }
             if (val > alpha) alpha = val;
-            if (alpha >= beta) return alpha;  // cutoff
+            if (alpha >= beta) break;  // cutoff
         }
+
+        // TT store
+        tte->key   = key;
+        tte->score = best;
+        tte->depth = 64; // Marked as perfect solver depth
+        tte->move  = (int8_t)(bestMove < 0 ? OthelloBoard::PASS : bestMove);
+        tte->flag  = (int8_t)(best <= origAlpha ? 2 : (best >= beta ? 1 : 0));
+
         return best;
     }
 
@@ -373,10 +401,13 @@ private:
         ttClear();
         int bestMove  = -1;
         int bestScore = INT_MIN;
+        int alpha = INT_MIN + 1;
+        int beta = INT_MAX;
 
         for (int cell : orderedMoves(legalMask)) {
-            int val = -negamaxPerfect(board.afterMove(cell, isBlack), !isBlack, INT_MIN+1, INT_MAX);
+            int val = -negamaxPerfect(board.afterMove(cell, isBlack), !isBlack, -beta, -alpha);
             if (val > bestScore) { bestScore = val; bestMove = cell; }
+            if (val > alpha) alpha = val;
         }
         return (bestMove < 0) ? OthelloBoard::PASS : bestMove;
     }

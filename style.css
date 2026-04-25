@@ -503,6 +503,7 @@ body {
   color: var(--text-muted);
   letter-spacing: 0.05em;
   text-align: center;
+  margin-bottom: 1.5rem;   /* gap above footer border-top when scrolled */
 }
 .engine-status.ready { color: var(--accent); }
 .engine-status.error { color: #f87171; }
@@ -693,7 +694,7 @@ body {
   max-width: 520px;
   text-align: center;
   padding: 0.6rem 0.5rem;
-  margin-top: 2rem;          /* gap between content and footer border */
+  margin-top: auto;          /* sticky to bottom; content above provides gap */
   font-size: 0.65rem;
   color: var(--text-muted);
   border-top: 1px solid var(--border);

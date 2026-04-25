@@ -63,7 +63,10 @@
         <div class="tech-badges">
           <span class="tech-badge wasm-badge">⚡ WebAssembly</span>
           <span class="tech-badge">C++ Engine</span>
-          <span class="tech-badge">Bitboard AI</span>
+          <span class="tech-badge">64-bit Bitboard</span>
+          <span class="tech-badge">Alpha-Beta Negamax</span>
+          <span class="tech-badge">Iterative Deepening</span>
+          <span class="tech-badge">Perfect Endgame</span>
         </div>
       </div>
     </section>
@@ -103,6 +106,18 @@
       <div class="controls">
         <button class="ctrl-btn resign-btn" id="resign-btn" onclick="onHumanResign()">Resign</button>
         <button class="ctrl-btn replay-btn" id="replay-btn" hidden onclick="resetToSideSelect()">New Game</button>
+      </div>
+
+      <!-- Engine tech chips (always visible during gameplay) -->
+      <div class="engine-chips">
+        <span class="engine-chip wasm-chip">⚡ WASM</span>
+        <span class="engine-chip">Negamax</span>
+        <span class="engine-chip">IDA*</span>
+        <span class="engine-chip">TT</span>
+        <span class="engine-chip">Mobility</span>
+        <span class="engine-chip">Corner Weights</span>
+        <span class="engine-chip">Move Order</span>
+        <span class="engine-chip">∞ Endgame</span>
       </div>
     </section>
 

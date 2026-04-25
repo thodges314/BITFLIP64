@@ -574,11 +574,11 @@ body {
 .modal-btn.secondary { background: transparent; color: var(--text); }
 .modal-btn.secondary:hover { background: var(--surface-2); }
 
-/* ── Tech stack badges ──────────────────────────────────────────────────────── */
+/* ── Tech stack badges (select card — read-only info) ──────────────────────── */
 .tech-badges {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.45rem;
+  gap: 0.4rem;
   margin-top: 1.2rem;
   justify-content: center;
 }
@@ -586,21 +586,60 @@ body {
 .tech-badge {
   display: inline-flex;
   align-items: center;
-  padding: 0.22rem 0.65rem;
+  padding: 0.18rem 0.6rem;
   border-radius: 999px;
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  border: 1px solid var(--border);
-  background: var(--surface-2);
+  font-size: 0.64rem;
+  font-weight: 500;
+  font-style: italic;
+  letter-spacing: 0.04em;
+  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.03);
   color: var(--text-muted);
+  opacity: 0.8;
+  cursor: default;
+  user-select: none;
+  pointer-events: none;
 }
 
 .wasm-badge {
-  border-color: var(--lcd-amber);
+  border-color: rgba(255, 184, 0, 0.35);
+  color: rgba(255, 184, 0, 0.75);
+  background: rgba(255, 184, 0, 0.05);
+  font-style: normal;
+  font-weight: 600;
+}
+
+/* ── Engine tech chips (gameplay — compact row) ─────────────────────────────── */
+.engine-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  justify-content: center;
+  padding: 0.1rem 0;
+}
+
+.engine-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: 1px solid rgba(255,255,255,0.07);
+  background: rgba(255,255,255,0.03);
+  color: rgba(122, 127, 154, 0.7);   /* text-muted, dimmer */
+  cursor: default;
+  user-select: none;
+  pointer-events: none;
+}
+
+.wasm-chip {
+  border-color: rgba(255, 184, 0, 0.4);
   color: var(--lcd-amber);
-  background: rgba(255, 184, 0, 0.08);
-  text-shadow: 0 0 8px rgba(255, 184, 0, 0.4);
+  background: rgba(255, 184, 0, 0.06);
+  text-shadow: 0 0 6px rgba(255, 184, 0, 0.35);
 }
 
 /* Footer WASM pill */

@@ -119,14 +119,3 @@ Disc count weight ramps from 0 at 20 empty to 20 at 0 empty, bridging heuristic 
 | `wasm_getBestMove(cells, isBlack, difficulty)` | `int*[64], int, int` | cell 0–63, 64=PASS, −1=err |
 | `wasm_getLegalMoves(cells, isBlack, outHi, outLo)` | `int*[64], int, int*, int*` | 64-bit mask split into two int32 |
 | `wasm_getScore(cells)` | `int*[64]` | Black − White disc count |
-
-## Compared to TENGEN5 (Go)
-
-| | TENGEN5 | BITFLIP-64 |
-|---|---|---|
-| Game | 5×5 Go | 8×8 Othello |
-| Algorithm | UCT-RAVE MCTS | Alpha-beta negamax |
-| Parallelism | 4 pthreads | Single-threaded |
-| Endgame | Greedy pass-suppress | Perfect exact solve (≤26 empty) |
-| Evaluation | Chinese area scoring | Positional + mobility + frontier + edge stability |
-| Opening | KataGo 10-ply book | None (strong from move 1) |

@@ -251,7 +251,7 @@ def _fnv1a(black: int, white: int) -> int:
     """FNV-1a 64-bit hash — MUST match opening_book.hpp hash_pos()."""
     h = 0xCBF2_9CE4_8422_2325
     for b in (black.to_bytes(8, 'little') + white.to_bytes(8, 'little')):
-        h = ((h ^ b) * 0x0000_0001_0000_01B3) & MASK64
+        h = ((h ^ b) * 0x100000001B3) & MASK64
     return h
 
 def write_cpp(book: dict):

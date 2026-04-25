@@ -502,7 +502,9 @@ private:
         // ── Opening book probe ────────────────────────────────────────────────
         // Only active for the first MAX_DEPTH=24 moves (empty ≥ 36).
         // Compute canonical D4 form, look up in book, reverse transform.
-        lastMoveWasBook = false;   // assume calculated until proven otherwise
+        // Book hits return (actual_cell | 0x100) so bit 8 signals a book move.
+        // This is decoded by the JS worker atomically with the move index.
+        lastMoveWasBook = false;   // also maintain flag for wasm_wasBookMove
         if (board.emptyCount() >= 36) {
             auto [cb, cw, t] = canonForm(board.black, board.white);
             uint64_t key = OpeningBook::hash_pos(cb, cw);
@@ -511,7 +513,7 @@ private:
                 int actual_cell = applyTransformCell(canon_cell, INVERSE_T[t]);
                 if (legalMask >> actual_cell & 1) {
                     lastMoveWasBook = true;
-                    return actual_cell;   // instant book move
+                    return actual_cell | 0x100;  // bit 8 = from-book flag
                 }
             }
         }

@@ -11,7 +11,7 @@ A browser-playable Othello (Reversi) game backed by a WebAssembly **alpha-beta e
 - **Three difficulty levels**
   - **Easy** — depth-3 fixed search, ~200 ms
   - **Medium** — iterative deepening ~1.2 s, perfect solve ≤10 empty
-  - **Hard** — iterative deepening ~3 s, perfect solve ≤20 empty
+  - **Hard** — iterative deepening ~4 s, perfect solve ≤22 empty
 - **Perfect endgame solver** — at ≤20 empty squares the engine switches from heuristic evaluation to exact disc-count negamax, guaranteeing mathematically optimal play in the final phase
 - **Iterative-deepening-integrated perfect solver** — the perfect solve is reached via the same ID loop as the midgame, so the transposition table is fully seeded with strong move ordering before the deep exact search begins
 - **Time-limit safety** — if a 20-ply perfect solve approaches the 3-second budget, the engine bails out and returns the best move found at the previous completed depth, preventing any browser UI freeze

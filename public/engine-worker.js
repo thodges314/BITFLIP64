@@ -57,7 +57,7 @@ self.onmessage = function ({ data }) {
   const { id, type, payload } = data;
   try {
     if (type === 'getBestMove') {
-      const { cells, isBlack, difficulty, useProbCut } = payload;
+      const { cells, isBlack, difficulty, timeLimitMs } = payload;
 
       // Write board into WASM heap (live access, safe after memory growth)
       const base = bufPtr >> 2;  // byte offset → Int32 index
@@ -67,7 +67,7 @@ self.onmessage = function ({ data }) {
       const move = engine.ccall(
         'wasm_getBestMove', 'number',
         ['number', 'number', 'number', 'number'],
-        [bufPtr, isBlack ? 1 : 0, difficulty, useProbCut ? 1 : 0]
+        [bufPtr, isBlack ? 1 : 0, difficulty, timeLimitMs]
       );
 
       // Query the book-hit flag (single global bool set during the call above).

@@ -250,16 +250,28 @@ document.querySelectorAll('.diff-btn').forEach(btn => {
     document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     difficulty = parseInt(btn.dataset.diff, 10);
+    if (timeLimitContainer) {
+      timeLimitContainer.style.display = (difficulty === 2) ? 'block' : 'none';
+    }
   });
 });
 
 // ── Audio toggle controls ─────────────────────────────────────────────────────
 const sfxToggle = document.getElementById('sfx-toggle');
 const musicToggle = document.getElementById('music-toggle');
-const probcutToggle = document.getElementById('probcut-toggle');
 const sfxIcon = document.getElementById('sfx-icon');
 const musicIcon = document.getElementById('music-icon');
-let useProbCut = true;
+const timeLimitContainer = document.getElementById('time-limit-container');
+
+let timeLimitMs = 5000;
+
+document.querySelectorAll('.time-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    timeLimitMs = parseInt(btn.dataset.time, 10);
+  });
+});
 
 sfxToggle.addEventListener('click', () => {
   SoundFX.enabled = !SoundFX.enabled;
@@ -279,10 +291,6 @@ musicToggle.addEventListener('click', () => {
   }
 });
 
-probcutToggle.addEventListener('click', () => {
-  useProbCut = !useProbCut;
-  probcutToggle.classList.toggle('active', useProbCut);
-});
 
 // ── Pure-JS Othello logic ─────────────────────────────────────────────────────
 // Used for legal move highlighting and flip animation — avoids extra WASM round-trips.
@@ -547,7 +555,7 @@ async function cpuTurn() {
       cells: [...cells],
       isBlack: cpuPlayer === 1,
       difficulty,
-      useProbCut,
+      timeLimitMs,
     });
     move     = result.move;
     fromBook = result.fromBook === true;
@@ -706,7 +714,7 @@ async function initEngine() {
     // The ?v= cache-buster ensures the browser always loads the current worker
     // script. Update this string on every engine-worker.js deployment to avoid
     // mismatches between a stale worker and freshly-built WASM.
-    const WORKER_VERSION = '20250425-8';
+    const WORKER_VERSION = '20250425-9';
     engineWorker = new Worker(`public/engine-worker.js?v=${WORKER_VERSION}`);
 
     await new Promise((resolve, reject) => {

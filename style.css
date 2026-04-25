@@ -167,7 +167,8 @@ body {
   gap: 0.6rem;
 }
 
-.diff-btn {
+.diff-btn,
+.time-btn {
   flex: 1;
   padding: 0.55rem 0;
   border-radius: 8px;
@@ -180,10 +181,12 @@ body {
   cursor: pointer;
   transition: all 0.18s ease;
 }
-.diff-btn:hover { border-color: var(--accent); color: var(--text); }
+.diff-btn:hover, .time-btn:hover { border-color: var(--accent); color: var(--text); }
 .diff-btn.active[data-diff="0"] { border-color: var(--diff-easy);   color: var(--diff-easy);   background: rgba(52,211,153,0.1); }
 .diff-btn.active[data-diff="1"] { border-color: var(--diff-medium); color: var(--diff-medium); background: rgba(251,191,36,0.1); }
 .diff-btn.active[data-diff="2"] { border-color: var(--diff-hard);   color: var(--diff-hard);   background: rgba(248,113,113,0.1); }
+
+.time-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0,255,204,0.1); }
 
 /* Color buttons */
 .color-row {

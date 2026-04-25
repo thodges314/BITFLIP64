@@ -42,10 +42,10 @@ void wasm_init() {
 //
 // Returns: cell index 0–63, 64 (PASS), or -1 on error.
 EMSCRIPTEN_KEEPALIVE
-int wasm_getBestMove(const int* cells, int isBlack, int difficulty) {
+int wasm_getBestMove(const int* cells, int isBlack, int difficulty, int timeLimitMs) {
     if (!g_ai) return -1;
     OthelloBoard board = boardFromCells(cells);
-    return g_ai->getBestMove(board, isBlack == 1, difficulty);
+    return g_ai->getBestMove(board, isBlack == 1, difficulty, timeLimitMs);
 }
 
 // ── wasm_wasBookMove ──────────────────────────────────────────────────────────

@@ -38,9 +38,6 @@
         <button class="audio-toggle" id="music-toggle" title="Cyber-baroque music on/off">
           <span id="music-icon">🎵</span><span class="atog-label"> Music</span>
         </button>
-        <button class="audio-toggle active" id="probcut-toggle" title="Enable shallow forward pruning to cut dead branches early">
-          <span id="probcut-icon">✂️</span><span class="atog-label"> ProbCut</span>
-        </button>
       </div>
     </header>
 
@@ -52,6 +49,15 @@
           <button class="diff-btn" id="diff-easy" data-diff="0">Easy</button>
           <button class="diff-btn active" id="diff-medium" data-diff="1">Medium</button>
           <button class="diff-btn" id="diff-hard" data-diff="2">Hard</button>
+        </div>
+
+        <div id="time-limit-container" style="display: none; margin-top: 1.5rem;">
+          <p class="select-label">Depth Time Limit</p>
+          <div class="difficulty-row" id="time-row">
+            <button class="time-btn active" id="time-5s" data-time="5000">5s</button>
+            <button class="time-btn" id="time-10s" data-time="10000">10s</button>
+            <button class="time-btn" id="time-15s" data-time="15000">15s</button>
+          </div>
         </div>
 
         <p class="select-label" style="margin-top:1.5rem">Choose Your Color</p>

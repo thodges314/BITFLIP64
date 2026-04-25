@@ -253,10 +253,10 @@ body {
 .score-stack {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   line-height: 1;
 }
-.score-stack-r { align-items: flex-end; }
+.score-stack-r { align-items: center; }
 
 .player-label {
   font-size: 0.65rem;

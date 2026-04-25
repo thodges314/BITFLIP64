@@ -42,6 +42,7 @@ let cpuPlayer   = 2;
 let gameOver    = false;
 let difficulty  = 1;     // 0=Easy 1=Medium 2=Hard
 let moveHistory = [];
+let lastMove    = -1;    // index of the most recently played cell (-1 = none)
 
 // ── Engine Worker ─────────────────────────────────────────────────────────────
 let engineWorker  = null;
@@ -379,6 +380,14 @@ function renderBoard(animFlips = new Set(), animNew = new Set()) {
       } else if (animNew.has(i)) {
         disc.classList.add('anim-place');
       }
+
+      // Last-move red dot marker
+      if (i === lastMove) {
+        const marker = document.createElement('div');
+        marker.className = 'last-move-dot';
+        disc.appendChild(marker);
+      }
+
       cell.appendChild(disc);
       cell.classList.remove('hoverable');
     } else if (!gameOver && legalMoves.has(i)) {
@@ -575,6 +584,7 @@ async function cpuTurn() {
   const newSet    = new Set([move]);
   const flipSet   = new Set(flipped);
   cells = newCells;
+  lastMove = move;
   moveHistory.push({ player: cpuPlayer, move });
 
   SoundFX.playCpu();
@@ -607,6 +617,7 @@ function onCellClick(idx) {
   const newSet  = new Set([idx]);
   const flipSet = new Set(flipped);
   cells = newCells;
+  lastMove = idx;
   moveHistory.push({ player: humanPlayer, move: idx });
 
   SoundFX.playPlace();
@@ -644,6 +655,7 @@ function startGame(human) {
 
   gameOver    = false;
   moveHistory = [];
+  lastMove    = -1;
 
   const diffLabel = ['Easy','Medium','Hard'][difficulty];
   const color     = human === 1 ? 'Black' : 'White';

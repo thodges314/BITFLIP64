@@ -556,8 +556,22 @@ async function cpuTurn() {
     return;
   }
 
-  // Apply CPU move with flip animation
+  // Apply CPU move with flip animation.
+  // Guard: if JS finds 0 flips for the WASM-chosen move, the engines have
+  // diverged (JS/WASM mismatch). Treat as a CPU pass rather than silently
+  // placing a disc without flipping — which corrupts the board state.
   const { newCells, flipped } = applyMoveJS(cells, move, cpuPlayer);
+  if (flipped.length === 0) {
+    console.warn(`[Bitflip-64] WASM/JS mismatch: WASM chose cell ${move} but JS finds 0 flips. Treating as CPU pass.`);
+    SoundFX.playPass();
+    moveHistory.push({ player: cpuPlayer, move: PASS_MOVE });
+    setMoveInfo(`⏭ Computer passes · ${ms} ms`);
+    if (getLegalMovesJS(cells, humanPlayer).length === 0) { endGame('score'); return; }
+    renderBoard();
+    setStatus('Your turn — computer passed', 'your-turn');
+    return;
+  }
+
   const newSet    = new Set([move]);
   const flipSet   = new Set(flipped);
   cells = newCells;

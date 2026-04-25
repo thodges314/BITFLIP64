@@ -534,13 +534,15 @@ async function cpuTurn() {
   const t0 = performance.now();
 
   let move = -1;
+  let fromBook = false;
   try {
     const result = await workerRequest('getBestMove', {
       cells: [...cells],
       isBlack: cpuPlayer === 1,
       difficulty,
     });
-    move = result.move;
+    move     = result.move;
+    fromBook = result.fromBook === true;
   } catch (err) {
     console.error('Worker error:', err);
     move = -1;
@@ -586,8 +588,11 @@ async function cpuTurn() {
   moveHistory.push({ player: cpuPlayer, move });
 
   SoundFX.playCpu();
-  const diffLabel = ['Easy', 'Medium', 'Hard'][difficulty];
-  setMoveInfo(`🤖 CPU (${diffLabel}) · ${ms} ms · ${flipped.length} flip${flipped.length !== 1 ? 's' : ''}`);
+  const diffLabel  = ['Easy', 'Medium', 'Hard'][difficulty];
+  const sourceBadge = fromBook
+    ? '📖 Book'
+    : `⚡ ${ms} ms`;
+  setMoveInfo(`🤖 CPU (${diffLabel}) · ${sourceBadge} · ${flipped.length} flip${flipped.length !== 1 ? 's' : ''}`);
 
   renderBoard(flipSet, newSet);
 

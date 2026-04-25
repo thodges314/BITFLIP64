@@ -59,14 +59,17 @@ self.onmessage = function ({ data }) {
       const base = bufPtr >> 2;  // byte offset → Int32 index
       for (let i = 0; i < CELLS; i++) engine.HEAP32[base + i] = cells[i];
 
-      // Run alpha-beta search
+      // Run alpha-beta search (or instant book lookup)
       const move = engine.ccall(
         'wasm_getBestMove', 'number',
         ['number', 'number', 'number'],
         [bufPtr, isBlack ? 1 : 0, difficulty]
       );
 
-      self.postMessage({ id, type: 'bestMove', payload: { move } });
+      // Query the book-hit flag immediately (before any other AI call)
+      const fromBook = engine.ccall('wasm_wasBookMove', 'number', [], []) === 1;
+
+      self.postMessage({ id, type: 'bestMove', payload: { move, fromBook } });
     }
   } catch (err) {
     self.postMessage({ id, error: String(err) });

@@ -78,8 +78,9 @@ inline void     ttClear()              { std::memset(g_tt, 0, sizeof(g_tt)); }
 // ── OthelloAI ─────────────────────────────────────────────────────────────────
 class OthelloAI {
 public:
-    int  nodesSearched = 0;
-    bool timeLimitHit  = false;
+    int  nodesSearched    = 0;
+    bool timeLimitHit     = false;
+    bool lastMoveWasBook  = false;   // set true when getBestMove returns a book move
     std::chrono::steady_clock::time_point searchStart;
     int  timeLimitMs   = 1000;
 
@@ -501,14 +502,17 @@ private:
         // ── Opening book probe ────────────────────────────────────────────────
         // Only active for the first MAX_DEPTH=24 moves (empty ≥ 36).
         // Compute canonical D4 form, look up in book, reverse transform.
+        lastMoveWasBook = false;   // assume calculated until proven otherwise
         if (board.emptyCount() >= 36) {
             auto [cb, cw, t] = canonForm(board.black, board.white);
             uint64_t key = OpeningBook::hash_pos(cb, cw);
             int canon_cell  = OpeningBook::lookup(key);
             if (canon_cell >= 0) {
                 int actual_cell = applyTransformCell(canon_cell, INVERSE_T[t]);
-                if (legalMask >> actual_cell & 1)
+                if (legalMask >> actual_cell & 1) {
+                    lastMoveWasBook = true;
                     return actual_cell;   // instant book move
+                }
             }
         }
 

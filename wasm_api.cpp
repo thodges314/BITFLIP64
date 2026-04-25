@@ -48,6 +48,16 @@ int wasm_getBestMove(const int* cells, int isBlack, int difficulty) {
     return g_ai->getBestMove(board, isBlack == 1, difficulty);
 }
 
+// ── wasm_wasBookMove ──────────────────────────────────────────────────────────
+// Returns 1 if the most recent wasm_getBestMove() was served from the
+// opening book (instant lookup), 0 if it required an alpha-beta search.
+// Call immediately after wasm_getBestMove() before any other AI call.
+EMSCRIPTEN_KEEPALIVE
+int wasm_wasBookMove() {
+    if (!g_ai) return 0;
+    return g_ai->lastMoveWasBook ? 1 : 0;
+}
+
 // ── wasm_getLegalMoves ────────────────────────────────────────────────────────
 // Writes the 64-bit legal move bitmask as two int32 halves into outHi/outLo.
 // In JS: legal cell i is set if (i < 32 ? (lo >>> i) & 1 : (hi >>> (i-32)) & 1).

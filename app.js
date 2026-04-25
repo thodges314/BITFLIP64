@@ -13,42 +13,42 @@
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const BOARD_SIZE = 8;
-const CELLS      = 64;
-const PASS_MOVE  = 64;
+const CELLS = 64;
+const PASS_MOVE = 64;
 
 // ── DOM references ─────────────────────────────────────────────────────────────
-const boardEl      = document.getElementById('board');
-const boardWrap    = document.getElementById('board-wrap');
-const sideSelect   = document.getElementById('side-select');
-const statusBar    = document.getElementById('status-bar');
-const moveInfoEl   = document.getElementById('move-info');
+const boardEl = document.getElementById('board');
+const boardWrap = document.getElementById('board-wrap');
+const sideSelect = document.getElementById('side-select');
+const statusBar = document.getElementById('status-bar');
+const moveInfoEl = document.getElementById('move-info');
 const engineStatus = document.getElementById('engine-status');
 const blackCountEl = document.getElementById('black-count');
 const whiteCountEl = document.getElementById('white-count');
-const resignBtn    = document.getElementById('resign-btn');
-const replayBtn    = document.getElementById('replay-btn');
+const resignBtn = document.getElementById('resign-btn');
+const replayBtn = document.getElementById('replay-btn');
 const modalBackdrop = document.getElementById('modal-backdrop');
-const modalIcon    = document.getElementById('modal-icon');
-const modalTitle   = document.getElementById('modal-title');
+const modalIcon = document.getElementById('modal-icon');
+const modalTitle = document.getElementById('modal-title');
 const modalSubtitle = document.getElementById('modal-subtitle');
-const modalScore   = document.getElementById('modal-score-chip');
-const modalMethod  = document.getElementById('modal-method');
-const subtitle     = document.getElementById('subtitle');
+const modalScore = document.getElementById('modal-score-chip');
+const modalMethod = document.getElementById('modal-method');
+const subtitle = document.getElementById('subtitle');
 
 // ── Game state ────────────────────────────────────────────────────────────────
-let cells       = new Array(CELLS).fill(0);
+let cells = new Array(CELLS).fill(0);
 let humanPlayer = 1;     // 1=Black, 2=White
-let cpuPlayer   = 2;
-let gameOver    = false;
-let difficulty  = 1;     // 0=Easy 1=Medium 2=Hard
+let cpuPlayer = 2;
+let gameOver = false;
+let difficulty = 1;     // 0=Easy 1=Medium 2=Hard
 let moveHistory = [];
-let lastMove    = -1;    // index of the most recently played cell (-1 = none)
+let lastMove = -1;    // index of the most recently played cell (-1 = none)
 
 // ── Engine Worker ─────────────────────────────────────────────────────────────
-let engineWorker  = null;
-let engineReady   = false;
+let engineWorker = null;
+let engineReady = false;
 let _workerPending = {};
-let _workerNextId  = 1;
+let _workerNextId = 1;
 
 function workerRequest(type, payload) {
   return new Promise((resolve, reject) => {
@@ -63,7 +63,7 @@ function onWorkerMessage({ data }) {
   if (!pending) return;
   delete _workerPending[data.id];
   if (data.error) pending.reject(new Error(data.error));
-  else            pending.resolve(data.payload);
+  else pending.resolve(data.payload);
 }
 
 // ── Sound FX ──────────────────────────────────────────────────────────────────
@@ -78,26 +78,26 @@ const SoundFX = {
   },
   playTone(freq, type, duration, vol = 0.18, sweep = 0) {
     if (!this.enabled || !this.ctx) return;
-    const osc  = this.ctx.createOscillator();
+    const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     osc.connect(gain); gain.connect(this.ctx.destination);
-    osc.type            = type;
+    osc.type = type;
     osc.frequency.value = freq;
     if (sweep) osc.frequency.linearRampToValueAtTime(freq + sweep, this.ctx.currentTime + duration);
     gain.gain.setValueAtTime(vol, this.ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
     osc.start(); osc.stop(this.ctx.currentTime + duration);
   },
-  playPlace()  { this.playTone(600, 'sine',     0.07, 0.15); },
-  playCpu()    { this.playTone(380, 'triangle', 0.10, 0.12); },
-  playFlip()   { this.playTone(440, 'sine',     0.06, 0.08, 60); },
-  playPass()   { this.playTone(330, 'sine',     0.18, 0.12); },
-  playWin()    {
+  playPlace() { this.playTone(600, 'sine', 0.07, 0.15); },
+  playCpu() { this.playTone(380, 'triangle', 0.10, 0.12); },
+  playFlip() { this.playTone(440, 'sine', 0.06, 0.08, 60); },
+  playPass() { this.playTone(330, 'sine', 0.18, 0.12); },
+  playWin() {
     [523, 659, 784].forEach((f, i) =>
       setTimeout(() => this.playTone(f, 'sine', 0.25, 0.2), i * 110));
   },
-  playLoss()   { this.playTone(240, 'sawtooth', 0.5,  0.15, -80); },
-  playDraw()   {
+  playLoss() { this.playTone(240, 'sawtooth', 0.5, 0.15, -80); },
+  playDraw() {
     this.playTone(400, 'square', 0.15, 0.1);
     setTimeout(() => this.playTone(400, 'square', 0.15, 0.1), 200);
   },
@@ -113,7 +113,7 @@ const MusicEngine = {
   enabled: false,
 
   BPM: 132,
-  get QL()  { return 60 / this.BPM; },           // quarter-note (s)
+  get QL() { return 60 / this.BPM; },           // quarter-note (s)
   get S16() { return this.QL / 4; },              // sixteenth-note (s) ← melody unit
 
   // ── 64 sixteenth-note melody (4 bars at 132BPM) ───────────────────────────
@@ -124,30 +124,30 @@ const MusicEngine = {
   // Bar 4 (A):  A major dominant resolution with C# (harmonic minor)
   MELODY: [
     // Bar 1 — D minor ascending scale run
-    293.66, 329.63, 349.23, 392.00,  440.00, 466.16, 523.25, 587.33,
+    293.66, 329.63, 349.23, 392.00, 440.00, 466.16, 523.25, 587.33,
     // Bar 1 — descend with passing notes
-    523.25, 466.16, 440.00, 392.00,  349.23, 329.63, 293.66, 261.63,
+    523.25, 466.16, 440.00, 392.00, 349.23, 329.63, 293.66, 261.63,
     // Bar 2 — C major broken chord + sequence figure
-    261.63, 329.63, 392.00, 523.25,  392.00, 329.63, 261.63, 196.00,
+    261.63, 329.63, 392.00, 523.25, 392.00, 329.63, 261.63, 196.00,
     // Bar 2 — return upward with approachnotes
-    261.63, 349.23, 440.00, 523.25,  466.16, 392.00, 349.23, 261.63,
+    261.63, 349.23, 440.00, 523.25, 466.16, 392.00, 349.23, 261.63,
     // Bar 3 — G minor arpeggio + scale fragment
-    196.00, 233.08, 293.66, 349.23,  392.00, 349.23, 293.66, 233.08,
+    196.00, 233.08, 293.66, 349.23, 392.00, 349.23, 293.66, 233.08,
     // Bar 3 — rising sequence (Gm→Dm) broken thirds
-    293.66, 349.23, 329.63, 392.00,  392.00, 466.16, 440.00, 523.25,
+    293.66, 349.23, 329.63, 392.00, 392.00, 466.16, 440.00, 523.25,
     // Bar 4 — A major cadence: scale run up to E5 with C# (harmonic minor)
-    220.00, 277.18, 329.63, 440.00,  329.63, 277.18, 369.99, 440.00,
+    220.00, 277.18, 329.63, 440.00, 329.63, 277.18, 369.99, 440.00,
     // Bar 4 — final flourish descending to low D (toccata ending gesture)
-    440.00, 554.37, 493.88, 440.00,  392.00, 329.63, 277.18, 220.00,
+    440.00, 554.37, 493.88, 440.00, 392.00, 329.63, 277.18, 220.00,
   ],
 
   // ── 16 quarter-note bass (4 bars) ─────────────────────────────────────
   // Organum + walking bass: each beat gets one note, driving forward motion.
   BASS: [
-     73.42,  87.31,  55.00,  73.42,   // Bar 1 Dm: D2 F2 A1 D2
-     65.41,  82.41,  65.41,  49.00,   // Bar 2 C:  C2 E2 C2 G1
-     49.00,  58.27,  73.42,  98.00,   // Bar 3 Gm: G1 Bb1 D2 G2
-     55.00,  69.30,  55.00, 110.00,   // Bar 4 A:  A1 C#2 A1 A2 (dominant)
+    73.42, 87.31, 55.00, 73.42,   // Bar 1 Dm: D2 F2 A1 D2
+    65.41, 82.41, 65.41, 49.00,   // Bar 2 C:  C2 E2 C2 G1
+    49.00, 58.27, 73.42, 98.00,   // Bar 3 Gm: G1 Bb1 D2 G2
+    55.00, 69.30, 55.00, 110.00,   // Bar 4 A:  A1 C#2 A1 A2 (dominant)
   ],
 
   pos: 0,
@@ -162,9 +162,9 @@ const MusicEngine = {
     this.masterGain.gain.setValueAtTime(0.001, this.ctx.currentTime);
     this.masterGain.gain.linearRampToValueAtTime(0.35, this.ctx.currentTime + 1.5);
     this.masterGain.connect(this.ctx.destination);
-    this.pos      = 0;
+    this.pos = 0;
     this.nextTime = this.ctx.currentTime + 0.08;
-    this.enabled  = true;
+    this.enabled = true;
     this._tick();
   },
 
@@ -176,7 +176,7 @@ const MusicEngine = {
       this.masterGain.gain.setValueAtTime(this.masterGain.gain.value, t);
       this.masterGain.gain.linearRampToValueAtTime(0.001, t + 0.6);
       const mg = this.masterGain; this.masterGain = null;
-      setTimeout(() => { try { mg.disconnect(); } catch(e){} }, 700);
+      setTimeout(() => { try { mg.disconnect(); } catch (e) { } }, 700);
     }
   },
 
@@ -205,7 +205,7 @@ const MusicEngine = {
       osc.type = 'square'; osc.frequency.value = freq; osc.detune.value = det;
       const g = this.ctx.createGain();
       g.gain.setValueAtTime(0.001, time);
-      g.gain.linearRampToValueAtTime(vol,   time + 0.003);
+      g.gain.linearRampToValueAtTime(vol, time + 0.003);
       g.gain.exponentialRampToValueAtTime(0.001, time + dur);
       osc.connect(g); g.connect(this.masterGain);
       osc.start(time); osc.stop(time + dur + 0.008);
@@ -221,9 +221,9 @@ const MusicEngine = {
     const lp = this.ctx.createBiquadFilter();
     lp.type = 'lowpass'; lp.frequency.value = 300; lp.Q.value = 2.2;
     const g = this.ctx.createGain();
-    g.gain.setValueAtTime(0.001,  time);
-    g.gain.linearRampToValueAtTime(0.50,  time + 0.010);
-    g.gain.exponentialRampToValueAtTime(0.08,  time + dur * 0.45);
+    g.gain.setValueAtTime(0.001, time);
+    g.gain.linearRampToValueAtTime(0.50, time + 0.010);
+    g.gain.exponentialRampToValueAtTime(0.08, time + dur * 0.45);
     g.gain.exponentialRampToValueAtTime(0.001, time + dur);
     osc.connect(lp); lp.connect(g); g.connect(this.masterGain);
     osc.start(time); osc.stop(time + dur + 0.01);
@@ -237,7 +237,7 @@ const MusicEngine = {
     osc.frequency.setValueAtTime(110, time);
     osc.frequency.exponentialRampToValueAtTime(55, time + 0.055);
     const g = this.ctx.createGain();
-    g.gain.setValueAtTime(0.38,  time);
+    g.gain.setValueAtTime(0.38, time);
     g.gain.exponentialRampToValueAtTime(0.001, time + 0.07);
     osc.connect(g); g.connect(this.masterGain);
     osc.start(time); osc.stop(time + 0.08);
@@ -254,10 +254,10 @@ document.querySelectorAll('.diff-btn').forEach(btn => {
 });
 
 // ── Audio toggle controls ─────────────────────────────────────────────────────
-const sfxToggle   = document.getElementById('sfx-toggle');
+const sfxToggle = document.getElementById('sfx-toggle');
 const musicToggle = document.getElementById('music-toggle');
-const sfxIcon     = document.getElementById('sfx-icon');
-const musicIcon   = document.getElementById('music-icon');
+const sfxIcon = document.getElementById('sfx-icon');
+const musicIcon = document.getElementById('music-icon');
 
 sfxToggle.addEventListener('click', () => {
   SoundFX.enabled = !SoundFX.enabled;
@@ -280,7 +280,7 @@ musicToggle.addEventListener('click', () => {
 // ── Pure-JS Othello logic ─────────────────────────────────────────────────────
 // Used for legal move highlighting and flip animation — avoids extra WASM round-trips.
 
-const DIRS = [[-1,0],[1,0],[0,-1],[0,1],[-1,1],[-1,-1],[1,1],[1,-1]];
+const DIRS = [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, 1], [-1, -1], [1, 1], [1, -1]];
 
 function isLegalMove(cells, idx, player) {
   if (cells[idx] !== 0) return false;
@@ -289,10 +289,10 @@ function isLegalMove(cells, idx, player) {
   const col = idx % BOARD_SIZE;
   for (const [dr, dc] of DIRS) {
     let r = row + dr, c = col + dc, found = false;
-    while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && cells[r*BOARD_SIZE+c] === opp) {
+    while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && cells[r * BOARD_SIZE + c] === opp) {
       r += dr; c += dc; found = true;
     }
-    if (found && r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && cells[r*BOARD_SIZE+c] === player)
+    if (found && r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && cells[r * BOARD_SIZE + c] === player)
       return true;
   }
   return false;
@@ -317,10 +317,10 @@ function applyMoveJS(cells, idx, player) {
   for (const [dr, dc] of DIRS) {
     const line = [];
     let r = row + dr, c = col + dc;
-    while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && newCells[r*BOARD_SIZE+c] === opp) {
-      line.push(r*BOARD_SIZE+c); r += dr; c += dc;
+    while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && newCells[r * BOARD_SIZE + c] === opp) {
+      line.push(r * BOARD_SIZE + c); r += dr; c += dc;
     }
-    if (line.length > 0 && r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && newCells[r*BOARD_SIZE+c] === player) {
+    if (line.length > 0 && r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && newCells[r * BOARD_SIZE + c] === player) {
       for (const cell of line) { newCells[cell] = player; flipped.push(cell); }
     }
   }
@@ -362,7 +362,7 @@ function buildBoard() {
 // animNew:   Set of cell indices for newly placed discs (place animation).
 function renderBoard(animFlips = new Set(), animNew = new Set()) {
   const legalMoves = !gameOver ? new Set(getLegalMovesJS(cells, humanPlayer)) : new Set();
-  const cpuLegal   = !gameOver ? getLegalMovesJS(cells, cpuPlayer).length > 0 : false;
+  const cpuLegal = !gameOver ? getLegalMovesJS(cells, cpuPlayer).length > 0 : false;
 
   for (let i = 0; i < CELLS; i++) {
     const cell = document.getElementById(`cell-${i}`);
@@ -422,12 +422,12 @@ function unmarkThinking() {
 
 // ── Modal ─────────────────────────────────────────────────────────────────────
 function showModal({ icon, title, subtitle: sub, scoreText, scoreClass, method }) {
-  modalIcon.textContent    = icon;
-  modalTitle.textContent   = title;
+  modalIcon.textContent = icon;
+  modalTitle.textContent = title;
   modalSubtitle.textContent = sub;
-  modalScore.textContent   = scoreText;
-  modalScore.className     = 'modal-score-chip ' + (scoreClass || '');
-  modalMethod.textContent  = method || '';
+  modalScore.textContent = scoreText;
+  modalScore.className = 'modal-score-chip ' + (scoreClass || '');
+  modalMethod.textContent = method || '';
   modalBackdrop.hidden = false;
 }
 function closeModal() { modalBackdrop.hidden = true; }
@@ -441,7 +441,7 @@ function endGame(method = 'score') {
   const wCount = cells.filter(c => c === 2).length;
   const blackWins = method === 'resignation' ? (humanPlayer === 2) : bCount > wCount;
   const whiteWins = method === 'resignation' ? (humanPlayer === 1) : wCount > bCount;
-  const draw      = method !== 'resignation' && bCount === wCount;
+  const draw = method !== 'resignation' && bCount === wCount;
   const humanWins = (blackWins && humanPlayer === 1) || (whiteWins && humanPlayer === 2);
 
   let scoreText, scoreClass;
@@ -453,26 +453,26 @@ function endGame(method = 'score') {
   } else if (humanWins) {
     SoundFX.playWin();
     const leader = blackWins ? 'Black' : 'White';
-    const extra  = bCount > wCount ? bCount + ' – ' + wCount : wCount + ' – ' + bCount;
+    const extra = bCount > wCount ? bCount + ' – ' + wCount : wCount + ' – ' + bCount;
     setStatus(method === 'resignation' ? 'Computer resigns — you win! 🎉'
-                                       : `You win! 🎉  ${extra}`,
-              blackWins ? 'b-wins' : 'w-wins');
-    scoreText  = (blackWins ? 'Black' : 'White') + '  ' + (bCount > wCount ? bCount : wCount) +
-                 ' – ' + (bCount > wCount ? wCount : bCount);
+      : `You win! 🎉  ${extra}`,
+      blackWins ? 'b-wins' : 'w-wins');
+    scoreText = (blackWins ? 'Black' : 'White') + '  ' + (bCount > wCount ? bCount : wCount) +
+      ' – ' + (bCount > wCount ? wCount : bCount);
     scoreClass = blackWins ? 'b-wins' : 'w-wins';
   } else {
     SoundFX.playLoss();
     const extra = bCount > wCount ? bCount + ' – ' + wCount : wCount + ' – ' + bCount;
     setStatus(method === 'resignation' ? 'You resigned — computer wins'
-                                       : `Computer wins — ${extra}`,
-              blackWins ? 'b-wins' : 'w-wins');
-    scoreText  = (blackWins ? 'Black' : 'White') + '  ' + (bCount > wCount ? bCount : wCount) +
-                 ' – ' + (bCount > wCount ? wCount : bCount);
+      : `Computer wins — ${extra}`,
+      blackWins ? 'b-wins' : 'w-wins');
+    scoreText = (blackWins ? 'Black' : 'White') + '  ' + (bCount > wCount ? bCount : wCount) +
+      ' – ' + (bCount > wCount ? wCount : bCount);
     scoreClass = blackWins ? 'b-wins' : 'w-wins';
   }
 
   resignBtn.disabled = true;
-  replayBtn.hidden   = false;
+  replayBtn.hidden = false;
 
   setTimeout(() => {
     if (draw) {
@@ -538,8 +538,8 @@ async function cpuTurn() {
   let move = -1;
   try {
     const result = await workerRequest('getBestMove', {
-      cells:      [...cells],
-      isBlack:    cpuPlayer === 1,
+      cells: [...cells],
+      isBlack: cpuPlayer === 1,
       difficulty,
     });
     move = result.move;
@@ -581,14 +581,14 @@ async function cpuTurn() {
     return;
   }
 
-  const newSet    = new Set([move]);
-  const flipSet   = new Set(flipped);
+  const newSet = new Set([move]);
+  const flipSet = new Set(flipped);
   cells = newCells;
   lastMove = move;
   moveHistory.push({ player: cpuPlayer, move });
 
   SoundFX.playCpu();
-  const diffLabel = ['Easy','Medium','Hard'][difficulty];
+  const diffLabel = ['Easy', 'Medium', 'Hard'][difficulty];
   setMoveInfo(`🤖 CPU (${diffLabel}) · ${ms} ms · ${flipped.length} flip${flipped.length !== 1 ? 's' : ''}`);
 
   renderBoard(flipSet, newSet);
@@ -614,7 +614,7 @@ function onCellClick(idx) {
   if (!isLegalMove(cells, idx, humanPlayer)) return;
 
   const { newCells, flipped } = applyMoveJS(cells, idx, humanPlayer);
-  const newSet  = new Set([idx]);
+  const newSet = new Set([idx]);
   const flipSet = new Set(flipped);
   cells = newCells;
   lastMove = idx;
@@ -646,26 +646,26 @@ function cellLabel(idx) {
 function startGame(human) {
   SoundFX.init();
   humanPlayer = human;
-  cpuPlayer   = human === 1 ? 2 : 1;
+  cpuPlayer = human === 1 ? 2 : 1;
 
   // Standard Othello start
   cells = new Array(CELLS).fill(0);
   cells[27] = 2; cells[36] = 2;  // White: d4, e5
   cells[28] = 1; cells[35] = 1;  // Black: e4, d5
 
-  gameOver    = false;
+  gameOver = false;
   moveHistory = [];
-  lastMove    = -1;
+  lastMove = -1;
 
-  const diffLabel = ['Easy','Medium','Hard'][difficulty];
-  const color     = human === 1 ? 'Black' : 'White';
+  const diffLabel = ['Easy', 'Medium', 'Hard'][difficulty];
+  const color = human === 1 ? 'Black' : 'White';
   subtitle.textContent = `Alpha-Beta AI · ${diffLabel} · Play as ${color}`;
 
   closeModal();
   sideSelect.hidden = false;
-  boardWrap.hidden  = false;
+  boardWrap.hidden = false;
   sideSelect.hidden = true;
-  replayBtn.hidden  = true;
+  replayBtn.hidden = true;
   resignBtn.disabled = false;
 
   buildBoard();
@@ -681,9 +681,9 @@ function startGame(human) {
 
 function resetToSideSelect() {
   closeModal();
-  boardWrap.hidden  = true;
+  boardWrap.hidden = true;
   sideSelect.hidden = false;
-  subtitle.textContent = 'Alpha-Beta AI · Perfect Endgame Solver · Play as —';
+  subtitle.textContent = 'Alpha-Beta AI · Perfect Endgame Solver';
 }
 
 // ── Engine init ───────────────────────────────────────────────────────────────
@@ -712,12 +712,12 @@ async function initEngine() {
     });
 
     engineStatus.textContent = 'Engine ready';
-    engineStatus.className   = 'engine-status ready';
+    engineStatus.className = 'engine-status ready';
     engineReady = true;
 
   } catch (err) {
     engineStatus.textContent = `Engine failed: ${err.message}`;
-    engineStatus.className   = 'engine-status error';
+    engineStatus.className = 'engine-status error';
     console.error('Engine init error:', err);
   }
 }

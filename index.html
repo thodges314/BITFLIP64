@@ -1,14 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>BITFLIP-64 — Othello AI</title>
   <meta name="description"
-        content="Play Othello against a WebAssembly alpha-beta AI with positional strategy, mobility evaluation, and a perfect endgame solver. Three difficulty levels." />
+    content="Play Othello against a WebAssembly alpha-beta AI with positional strategy, mobility evaluation, and a perfect endgame solver. Three difficulty levels." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600&display=swap"
+    rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
   <script>
     // Register COI ServiceWorker to unlock crossOriginIsolated if needed
@@ -18,13 +21,14 @@
     }
   </script>
 </head>
+
 <body>
   <main class="container">
 
     <!-- ══ Header ══════════════════════════════════════════════════════════ -->
     <header class="title-block">
       <h1 class="lcd-title">BITFLIP<span class="lcd-dash">-</span>64</h1>
-      <p class="subtitle" id="subtitle">Alpha-Beta AI · Perfect Endgame Solver · Play as —</p>
+      <p class="subtitle" id="subtitle">Alpha-Beta AI · Perfect Endgame Solver</p>
       <div class="audio-bar">
         <button class="audio-toggle active" id="sfx-toggle" title="Sound effects on/off">
           <span id="sfx-icon">🔊</span><span class="atog-label"> SFX</span>
@@ -40,9 +44,9 @@
       <div class="select-card">
         <p class="select-label">Choose Difficulty</p>
         <div class="difficulty-row" id="difficulty-row">
-          <button class="diff-btn" id="diff-easy"   data-diff="0">Easy</button>
+          <button class="diff-btn" id="diff-easy" data-diff="0">Easy</button>
           <button class="diff-btn active" id="diff-medium" data-diff="1">Medium</button>
-          <button class="diff-btn" id="diff-hard"   data-diff="2">Hard</button>
+          <button class="diff-btn" id="diff-hard" data-diff="2">Hard</button>
         </div>
 
         <p class="select-label" style="margin-top:1.5rem">Choose Your Color</p>
@@ -61,12 +65,24 @@
 
         <!-- Tech stack info line -->
         <p class="tech-line">
-          <span class="tech-hl" data-tooltip="C++ engine compiled to WebAssembly — runs at near-native speed directly in your browser, no install needed">⚡ WebAssembly</span> &middot;
-          <span data-tooltip="The game AI is written in C++ for maximum performance, then compiled to a .wasm binary the browser executes directly">C++ Engine</span> &middot;
-          <span data-tooltip="The board is stored as two 64-bit integers (one per colour) — each bit maps to a square, enabling lightning-fast bitwise move generation">64-bit Bitboard</span> &middot;
-          <span data-tooltip="Alpha-Beta Negamax — a symmetric recursive search that prunes branches provably unable to change the outcome, dramatically shrinking the search tree">Alpha-Beta Negamax</span> &middot;
-          <span data-tooltip="Iterative Deepening Alpha-Beta — searches depth 1, 2, 3… until time runs out, always returning the best move found at the deepest completed level">Iterative Deepening</span> &middot;
-          <span data-tooltip="Perfect Endgame Solver — when ≤10–20 empty squares remain, switches to an exact disc-count search that finds the provably optimal result by force">Perfect Endgame</span>
+          <span class="tech-hl"
+            data-tooltip="C++ engine compiled to WebAssembly — runs at near-native speed directly in your browser, no install needed">⚡
+            WebAssembly</span> &middot;
+          <span
+            data-tooltip="The game AI is written in C++ for maximum performance, then compiled to a .wasm binary the browser executes directly">C++
+            Engine</span> &middot;
+          <span
+            data-tooltip="The board is stored as two 64-bit integers (one per colour) — each bit maps to a square, enabling lightning-fast bitwise move generation">64-bit
+            Bitboard</span> &middot;
+          <span
+            data-tooltip="Alpha-Beta Negamax — a symmetric recursive search that prunes branches provably unable to change the outcome, dramatically shrinking the search tree">Alpha-Beta
+            Negamax</span> &middot;
+          <span
+            data-tooltip="Iterative Deepening Alpha-Beta — searches depth 1, 2, 3… until time runs out, always returning the best move found at the deepest completed level">Iterative
+            Deepening</span> &middot;
+          <span
+            data-tooltip="Perfect Endgame Solver — when ≤10–20 empty squares remain, switches to an exact disc-count search that finds the provably optimal result by force">Perfect
+            Endgame</span>
         </p>
       </div>
     </section>
@@ -110,14 +126,30 @@
 
       <!-- Engine tech info -->
       <p class="engine-line">
-        <span class="tech-hl" data-tooltip="C++ engine compiled to WebAssembly — runs at near-native speed directly in your browser, no install needed">⚡ WASM</span> &middot;
-        <span data-tooltip="Alpha-Beta Negamax — prunes branches that can't change the outcome, cutting the search tree dramatically">Negamax</span> &middot;
-        <span data-tooltip="Iterative Deepening Alpha-Beta — searches depth 1, 2, 3… until time runs out, always keeping the best move found so far">IDA*</span> &middot;
-        <span data-tooltip="Transposition Table — a hash cache of visited board positions so identical states reached by different move orders aren't re-evaluated">TT</span> &middot;
-        <span data-tooltip="Mobility Heuristic — scores positions by the difference in legal moves available; restricting the opponent's options is a core Othello strategy">Mobility</span> &middot;
-        <span data-tooltip="Positional Weight Table — corners are permanent and score highest; X-squares (diagonal to corners) score lowest as they gift corners to the opponent">Corner Weights</span> &middot;
-        <span data-tooltip="Move Ordering — corners are searched first, X-squares last; good ordering maximises Alpha-Beta cutoffs and speeds up the search">Move Order</span> &middot;
-        <span data-tooltip="Perfect Endgame Solver — when ≤10–20 empty squares remain, switches to an exact disc-count search that finds the provably optimal result by force">&#x221e; Endgame</span>
+        <span class="tech-hl"
+          data-tooltip="C++ engine compiled to WebAssembly — runs at near-native speed directly in your browser, no install needed">⚡
+          WASM</span> &middot;
+        <span
+          data-tooltip="Alpha-Beta Negamax — prunes branches that can't change the outcome, cutting the search tree dramatically">Negamax</span>
+        &middot;
+        <span
+          data-tooltip="Iterative Deepening Alpha-Beta — searches depth 1, 2, 3… until time runs out, always keeping the best move found so far">IDA*</span>
+        &middot;
+        <span
+          data-tooltip="Transposition Table — a hash cache of visited board positions so identical states reached by different move orders aren't re-evaluated">TT</span>
+        &middot;
+        <span
+          data-tooltip="Mobility Heuristic — scores positions by the difference in legal moves available; restricting the opponent's options is a core Othello strategy">Mobility</span>
+        &middot;
+        <span
+          data-tooltip="Positional Weight Table — corners are permanent and score highest; X-squares (diagonal to corners) score lowest as they gift corners to the opponent">Corner
+          Weights</span> &middot;
+        <span
+          data-tooltip="Move Ordering — corners are searched first, X-squares last; good ordering maximises Alpha-Beta cutoffs and speeds up the search">Move
+          Order</span> &middot;
+        <span
+          data-tooltip="Perfect Endgame Solver — when ≤10–20 empty squares remain, switches to an exact disc-count search that finds the provably optimal result by force">&#x221e;
+          Endgame</span>
       </p>
     </section>
 
@@ -145,7 +177,10 @@
   <footer class="footer">
     <div class="footer-author-line">
       <a href="https://www.linkedin.com/in/thomas-hodges/" target="_blank" rel="noopener" class="footer-author">
-        <svg class="li-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+        <svg class="li-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path
+            d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+        </svg>
         Thomas Hodges
       </a>
       <span class="footer-sep">&middot;</span>
@@ -155,4 +190,5 @@
 
   <script src="app.js"></script>
 </body>
+
 </html>

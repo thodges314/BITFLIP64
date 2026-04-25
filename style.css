@@ -462,6 +462,7 @@ body {
   text-align: center;
   letter-spacing: 0.04em;
   min-height: 1.2rem;
+  margin: 0.45rem 0;
   transition: opacity 0.2s;
 }
 .move-info.update { animation: infoFlash 0.25s ease; }

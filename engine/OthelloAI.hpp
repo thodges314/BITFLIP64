@@ -2,11 +2,12 @@
 // OthelloAI.hpp — Bitflip-64 Othello AI
 //
 // Algorithm: Iterative-deepening alpha-beta negamax with:
-//   • Positional weight table (corners >> edges >> interior >> X-squares)
-//   • Mobility bonus, frontier disc penalty, edge stability bonus
+//   • Positional weight table, mobility bonus, frontier penalty, edge stability
 //   • Transposition table (1M entries, Zobrist-keyed)
 //   • Aspiration windows (narrows α-β window using previous iteration score)
-//   • Principal Variation Search (PVS / Negascout)
+//   • Principal Variation Search (PVS) in both midgame and perfect endgame
+//   • Late Move Reductions (LMR) — depth-1 probe for low-priority moves;
+//       re-searches at full depth only if the reduced probe fails high
 //   • Killer move heuristic (2 killers per depth, promoted above history)
 //   • History heuristic (cutoff moves sorted to front at each depth)
 //   • Move ordering: TT move → killers → history score → MOVE_ORDER
@@ -15,7 +16,7 @@
 // Difficulty levels:
 //   0 = Easy   — depth 3 fixed, no endgame solver
 //   1 = Medium  — iterative deepening ~1.2 s, perfect solve ≤10 empty
-//   2 = Hard    — iterative deepening ~4.0 s, perfect solve ≤24 empty
+//   2 = Hard    — iterative deepening ~4.0 s, perfect solve ≤26 empty
 // ============================================================================
 #pragma once
 #include "OthelloBoard.hpp"
@@ -101,7 +102,7 @@ public:
         switch (difficulty) {
             case 0:  timeLimitMs = 200;  endgameThresh =  0; maxDepth =  3; break;
             case 1:  timeLimitMs = 1200; endgameThresh = 10; maxDepth = 60; break;
-            default: timeLimitMs = 4000; endgameThresh = 24; maxDepth = 60; break;
+            default: timeLimitMs = 4000; endgameThresh = 26; maxDepth = 60; break;
         }
 
         return getBestMoveAB(board, isBlack, maxDepth, endgameThresh);
@@ -296,9 +297,21 @@ private:
         int best = INT_MIN;
         int bestMove = -1;
         int origAlpha = alpha;
+        bool firstChild = true;
 
         for (int cell : orderedMoves(legalMask, ttMove)) {
-            int val = -negamaxPerfect(board.afterMove(cell, isBlack), !isBlack, -beta, -alpha);
+            int val;
+            if (firstChild) {
+                // First (best-ordered) child: full-window search.
+                val = -negamaxPerfect(board.afterMove(cell, isBlack), !isBlack, -beta, -alpha);
+                firstChild = false;
+            } else {
+                // PVS: null-window probe.
+                val = -negamaxPerfect(board.afterMove(cell, isBlack), !isBlack, -(alpha + 1), -alpha);
+                // Re-search with full window only if null-window fails high.
+                if (!timeLimitHit && val > alpha && val < beta)
+                    val = -negamaxPerfect(board.afterMove(cell, isBlack), !isBlack, -beta, -alpha);
+            }
             if (timeLimitHit) return 0;
             if (val > best) { best = val; bestMove = cell; }
             if (val > alpha) alpha = val;
@@ -362,19 +375,32 @@ private:
         int bestMove = -1;
         int origAlpha = alpha;
         bool firstChild = true;
+        int moveIdx = 0;
 
         for (int cell : orderedMoves(legalMask, ttMove, depth)) {
             int val;
             if (firstChild) {
-                // First (best-ordered) child: full-window search.
+                // First (best-ordered) child: full-window, full-depth search.
                 val = -negamax(board.afterMove(cell, isBlack), !isBlack, depth - 1, -beta, -alpha, endgameThresh);
                 firstChild = false;
             } else {
-                // PVS: null-window probe.
-                val = -negamax(board.afterMove(cell, isBlack), !isBlack, depth - 1, -(alpha + 1), -alpha, endgameThresh);
-                // Re-search with full window only if null-window fails high.
-                if (!timeLimitHit && val > alpha && val < beta)
-                    val = -negamax(board.afterMove(cell, isBlack), !isBlack, depth - 1, -beta, -alpha, endgameThresh);
+                // LMR: reduce depth for late, low-priority moves.
+                // Applies at depth ≥ 3, after the first 3 moves (TT + 2 killers)
+                // have already been tried at full depth.
+                bool lmr = depth >= 3 && moveIdx >= 3;
+                int d = lmr ? depth - 2 : depth - 1;
+
+                // PVS: null-window probe at possibly reduced depth.
+                val = -negamax(board.afterMove(cell, isBlack), !isBlack, d, -(alpha + 1), -alpha, endgameThresh);
+
+                if (!timeLimitHit && val > alpha) {
+                    // Promising: if LMR was applied, re-search at full depth with null window.
+                    if (lmr)
+                        val = -negamax(board.afterMove(cell, isBlack), !isBlack, depth - 1, -(alpha + 1), -alpha, endgameThresh);
+                    // If still above alpha and inside beta, do full-window re-search.
+                    if (!timeLimitHit && val > alpha && val < beta)
+                        val = -negamax(board.afterMove(cell, isBlack), !isBlack, depth - 1, -beta, -alpha, endgameThresh);
+                }
             }
             if (timeLimitHit) return 0;
             if (val > best) { best = val; bestMove = cell; }
@@ -388,6 +414,7 @@ private:
                 }
                 break;
             }
+            moveIdx++;
         }
 
         if (!timeLimitHit) {

@@ -11,12 +11,13 @@ A browser-playable Othello (Reversi) game backed by a WebAssembly **alpha-beta e
 - **Three difficulty levels**
   - **Easy** — depth-3 fixed search, ~200 ms
   - **Medium** — iterative deepening ~1.2 s, perfect solve ≤10 empty
-  - **Hard** — iterative deepening ~4 s, perfect solve ≤24 empty
-- **Perfect endgame solver** — when ≤10 empty (Medium) or ≤24 empty (Hard), the engine switches to exact disc-count negamax, guaranteeing mathematically optimal play in the final phase
+  - **Hard** — iterative deepening ~4 s, perfect solve ≤26 empty
+- **Perfect endgame solver** — when ≤10 empty (Medium) or ≤26 empty (Hard), the engine switches to exact disc-count negamax, guaranteeing mathematically optimal play in the final phase
 - **Iterative-deepening-integrated perfect solver** — the perfect solve is reached via the same ID loop as the midgame, so the transposition table is fully seeded with strong move ordering before the deep exact search begins
-- **Time-limit safety** — if a 24-ply perfect solve approaches the 4-second budget, the engine bails out and returns the best move found at the previous completed depth, preventing any browser UI freeze
+- **Time-limit safety** — if a 26-ply perfect solve approaches the 4-second budget, the engine bails out and returns the best move found at the previous completed depth, preventing any browser UI freeze
 - **Aspiration windows** — each ID iteration opens with a narrow `[prev−25, prev+25]` score window; widens exponentially on fail-low/high, producing far more alpha-beta cutoffs when the score is stable
-- **Principal Variation Search (PVS)** — all non-first moves are probed with a null window first; only re-searched with full window if they fail high, cutting node count by 15–30%
+- **Principal Variation Search (PVS)** — all non-first moves are probed with a null window first in both the midgame and perfect endgame solver; only re-searched with full window if they fail high, cutting node count by 15–30%
+- **Late Move Reductions (LMR)** — low-priority moves (past the TT move + 2 killers) are searched at `depth−2` first; if the reduced probe fails high, a full-depth re-search is triggered; allows the engine to reach 2–3 deeper plies in the same time budget
 - **Killer move heuristic** — 2 slots per depth store moves that recently caused beta cutoffs in sibling branches; promoted above history-ranked candidates
 - **History heuristic** — a `history[64]` table accumulates `depth²` per beta cutoff; non-priority moves are sorted descending by score each iteration
 - **Phase-adaptive evaluation** — weights shift between opening, midgame, and late-game phases automatically
@@ -93,7 +94,7 @@ After the first (best-ordered) move is searched with a full window, every subseq
 4. **Static MOVE_ORDER** — corners → edges → interior → X-squares (absolute fallback / tiebreaker)
 
 **Perfect endgame intercept:**
-When the search depth within `negamax` reaches the number of empty squares and the position is within the endgame threshold (≤10 or ≤24 empty, per difficulty), the call is transparently redirected to `negamaxPerfect`. This means iterative deepening seeds the TT with well-ordered move hints before the exact deep search fires — far more efficient than a cold-start 24-ply search.
+When the search depth within `negamax` reaches the number of empty squares and the position is within the endgame threshold (≤10 or ≤26 empty, per difficulty), the call is transparently redirected to `negamaxPerfect`. This means iterative deepening seeds the TT with well-ordered move hints before the exact deep search fires — far more efficient than a cold-start 26-ply search.
 
 **Time-limit safety:**
 `negamaxPerfect` checks `timeLimitHit` on every node entry and polls `timeUp()` every 1024 nodes. If the budget is exceeded, it aborts and the ID loop returns the best result from the previous completed depth.
@@ -126,6 +127,6 @@ Disc count weight ramps from 0 at 20 empty to 20 at 0 empty, bridging heuristic 
 | Game | 5×5 Go | 8×8 Othello |
 | Algorithm | UCT-RAVE MCTS | Alpha-beta negamax |
 | Parallelism | 4 pthreads | Single-threaded |
-| Endgame | Greedy pass-suppress | Perfect exact solve (≤24 empty) |
+| Endgame | Greedy pass-suppress | Perfect exact solve (≤26 empty) |
 | Evaluation | Chinese area scoring | Positional + mobility + frontier + edge stability |
 | Opening | KataGo 10-ply book | None (strong from move 1) |

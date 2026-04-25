@@ -1,6 +1,5 @@
-# Compiled engine output
-public/engine.js
-public/engine.wasm
+# WASM build artifacts are committed so GitHub Pages can serve them
+# To rebuild: source ~/emsdk/emsdk_env.sh && make wasm
 
 # Large dependencies
 *.gz

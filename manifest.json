@@ -1,0 +1,22 @@
+{
+  "name": "BITFLIP-64 Othello",
+  "short_name": "BITFLIP-64",
+  "description": "Play Othello against a WebAssembly Alpha-Beta AI.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "favicon.ico",
+      "sizes": "48x48 192x192 512x512",
+      "type": "image/x-icon"
+    }
+  ]
+}

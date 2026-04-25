@@ -19,21 +19,37 @@ self.addEventListener('activate', event =>
   )
 );
 
-async function addCOIHeaders(request) {
+const CACHE_NAME = 'bitflip64-v1';
+
+async function handleFetch(request) {
+  const cache = await caches.open(CACHE_NAME);
   let response;
+
   try {
+    // 1. Network First: Always try to get the newest file
     response = await fetch(request);
-  } catch {
-    return Response.error();
+
+    // 2. Add to Cache: Save a copy of successful requests for offline use
+    if (response.status === 200 || response.status === 0) {
+      cache.put(request, response.clone()).catch(() => {});
+    }
+  } catch (error) {
+    // 3. Offline Fallback: If network fails, pull from the cache
+    response = await cache.match(request);
+    if (!response) {
+      return Response.error();
+    }
   }
-  // Don't touch opaque responses (cross-origin no-cors requests)
-  if (response.status === 0) return response;
+
+  // 4. Inject COI Headers (Required for SharedArrayBuffer / WebAssembly constraints)
+  if (response.status === 0) return response; // Opaque responses cannot have headers manipulated
 
   const headers = new Headers(response.headers);
-  headers.set('Cross-Origin-Opener-Policy',   'same-origin');
+  headers.set('Cross-Origin-Opener-Policy', 'same-origin');
   headers.set('Cross-Origin-Embedder-Policy', 'require-corp');
+
   return new Response(response.body, {
-    status:     response.status,
+    status: response.status,
     statusText: response.statusText,
     headers,
   });
@@ -44,5 +60,6 @@ self.addEventListener('fetch', event => {
   // Skip cache-only requests for cross-origin resources (avoids network errors)
   if (event.request.cache === 'only-if-cached' &&
       event.request.mode !== 'same-origin') return;
-  event.respondWith(addCOIHeaders(event.request));
+      
+  event.respondWith(handleFetch(event.request));
 });

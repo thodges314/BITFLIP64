@@ -256,8 +256,10 @@ document.querySelectorAll('.diff-btn').forEach(btn => {
 // ── Audio toggle controls ─────────────────────────────────────────────────────
 const sfxToggle = document.getElementById('sfx-toggle');
 const musicToggle = document.getElementById('music-toggle');
+const probcutToggle = document.getElementById('probcut-toggle');
 const sfxIcon = document.getElementById('sfx-icon');
 const musicIcon = document.getElementById('music-icon');
+let useProbCut = true;
 
 sfxToggle.addEventListener('click', () => {
   SoundFX.enabled = !SoundFX.enabled;
@@ -275,6 +277,11 @@ musicToggle.addEventListener('click', () => {
     musicToggle.classList.add('active');
     musicIcon.textContent = '🎶';
   }
+});
+
+probcutToggle.addEventListener('click', () => {
+  useProbCut = !useProbCut;
+  probcutToggle.classList.toggle('active', useProbCut);
 });
 
 // ── Pure-JS Othello logic ─────────────────────────────────────────────────────
@@ -540,6 +547,7 @@ async function cpuTurn() {
       cells: [...cells],
       isBlack: cpuPlayer === 1,
       difficulty,
+      useProbCut,
     });
     move     = result.move;
     fromBook = result.fromBook === true;
@@ -698,7 +706,7 @@ async function initEngine() {
     // The ?v= cache-buster ensures the browser always loads the current worker
     // script. Update this string on every engine-worker.js deployment to avoid
     // mismatches between a stale worker and freshly-built WASM.
-    const WORKER_VERSION = '20250425-7';
+    const WORKER_VERSION = '20250425-8';
     engineWorker = new Worker(`public/engine-worker.js?v=${WORKER_VERSION}`);
 
     await new Promise((resolve, reject) => {

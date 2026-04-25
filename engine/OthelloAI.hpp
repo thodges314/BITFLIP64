@@ -156,7 +156,7 @@ public:
     // ── Public API ────────────────────────────────────────────────────────────
     // Returns best cell index (0–63) or OthelloBoard::PASS.
     // difficulty: 0=Easy, 1=Medium, 2=Hard
-    int getBestMove(const OthelloBoard& board, bool isBlack, int difficulty) {
+    int getBestMove(const OthelloBoard& board, bool isBlack, int difficulty, bool useProbCut = false) {
         nodesSearched = 0;
         timeLimitHit  = false;
         searchStart   = std::chrono::steady_clock::now();
@@ -168,7 +168,7 @@ public:
             default: timeLimitMs = 5000; endgameThresh = 32; maxDepth = 60; break;
         }
 
-        return getBestMoveAB(board, isBlack, maxDepth, endgameThresh);
+        return getBestMoveAB(board, isBlack, maxDepth, endgameThresh, useProbCut);
     }
 
 private:
@@ -393,7 +393,7 @@ private:
     }
 
     // ── Negamax alpha-beta ────────────────────────────────────────────────────
-    int negamax(const OthelloBoard& board, bool isBlack, int depth, int alpha, int beta, int endgameThresh) {
+    int negamax(const OthelloBoard& board, bool isBlack, int depth, int alpha, int beta, int endgameThresh, bool useProbCut) {
         if (timeLimitHit) return 0;
 
         int empty = board.emptyCount();
@@ -424,10 +424,18 @@ private:
                 int raw = isBlack ? s : -s;
                 return raw + (raw > 0 ? 1000 : (raw < 0 ? -1000 : 0));
             }
-            return -negamax(board, !isBlack, depth, -beta, -alpha, endgameThresh);
+            return -negamax(board, !isBlack, depth, -beta, -alpha, endgameThresh, useProbCut);
         }
 
         if (depth == 0) return evaluate(board, isBlack);
+
+        // ── ProbCut / Forward Pruning ─────────────────────────────────────────
+        if (useProbCut && depth >= 4 && alpha >= -10000 && beta <= 10000) {
+            int pruneMargin = 350; // ~3.5 discs safety buffer
+            int v = -negamax(board, !isBlack, depth - 4, -beta - pruneMargin, -alpha + pruneMargin, endgameThresh, false);
+            if (v + pruneMargin <= alpha) return alpha; // Fail low: it's terrible, prune it
+            if (v - pruneMargin >= beta)  return beta;  // Fail high: it's amazing, prune it
+        }
 
         if ((nodesSearched & 1023) == 0 && timeUp()) {
             timeLimitHit = true;
@@ -444,7 +452,7 @@ private:
             int val;
             if (firstChild) {
                 // First (best-ordered) child: full-window, full-depth search.
-                val = -negamax(board.afterMove(cell, isBlack), !isBlack, depth - 1, -beta, -alpha, endgameThresh);
+                val = -negamax(board.afterMove(cell, isBlack), !isBlack, depth - 1, -beta, -alpha, endgameThresh, useProbCut);
                 firstChild = false;
             } else {
                 // LMR: reduce depth for late, low-priority moves.
@@ -454,15 +462,14 @@ private:
                 int d = lmr ? depth - 2 : depth - 1;
 
                 // PVS: null-window probe at possibly reduced depth.
-                val = -negamax(board.afterMove(cell, isBlack), !isBlack, d, -(alpha + 1), -alpha, endgameThresh);
+                val = -negamax(board.afterMove(cell, isBlack), !isBlack, d, -(alpha + 1), -alpha, endgameThresh, useProbCut);
 
                 if (!timeLimitHit && val > alpha) {
                     // Promising: if LMR was applied, re-search at full depth with null window.
-                    if (lmr)
-                        val = -negamax(board.afterMove(cell, isBlack), !isBlack, depth - 1, -(alpha + 1), -alpha, endgameThresh);
-                    // If still above alpha and inside beta, do full-window re-search.
+                    if (lmr) val = -negamax(board.afterMove(cell, isBlack), !isBlack, depth - 1, -(alpha + 1), -alpha, endgameThresh, useProbCut);
+                    // If it exceeds alpha in the null window, we must re-search with full window.
                     if (!timeLimitHit && val > alpha && val < beta)
-                        val = -negamax(board.afterMove(cell, isBlack), !isBlack, depth - 1, -beta, -alpha, endgameThresh);
+                        val = -negamax(board.afterMove(cell, isBlack), !isBlack, depth - 1, -beta, -alpha, endgameThresh, useProbCut);
                 }
             }
             if (timeLimitHit) return 0;
@@ -492,7 +499,7 @@ private:
     }
 
     // ── Iterative deepening driver ────────────────────────────────────────────
-    int getBestMoveAB(const OthelloBoard& board, bool isBlack, int maxDepth, int endgameThresh) {
+    int getBestMoveAB(const OthelloBoard& board, bool isBlack, int maxDepth, int endgameThresh, bool useProbCut) {
         uint64_t legalMask = board.getLegalMoves(isBlack);
         if (legalMask == 0) return OthelloBoard::PASS;
 
@@ -556,14 +563,14 @@ private:
                 for (int cell : orderedMoves(legalMask, bestMove)) {
                     int val;
                     if (firstChild) {
-                        val = -negamax(board.afterMove(cell, isBlack), !isBlack, depth - 1, -beta, -searchAlpha, endgameThresh);
+                        val = -negamax(board.afterMove(cell, isBlack), !isBlack, depth - 1, -beta, -searchAlpha, endgameThresh, useProbCut);
                         firstChild = false;
                     } else {
                         // PVS: null-window probe.
-                        val = -negamax(board.afterMove(cell, isBlack), !isBlack, depth - 1, -(searchAlpha + 1), -searchAlpha, endgameThresh);
+                        val = -negamax(board.afterMove(cell, isBlack), !isBlack, depth - 1, -(searchAlpha + 1), -searchAlpha, endgameThresh, useProbCut);
                         // Re-search if null-window fails high inside the aspiration window.
                         if (!timeLimitHit && val > searchAlpha && val < beta)
-                            val = -negamax(board.afterMove(cell, isBlack), !isBlack, depth - 1, -beta, -searchAlpha, endgameThresh);
+                            val = -negamax(board.afterMove(cell, isBlack), !isBlack, depth - 1, -beta, -searchAlpha, endgameThresh, useProbCut);
                     }
                     if (timeLimitHit) break;
                     if (val > bestScore) { bestScore = val; bestAtDepth = cell; }

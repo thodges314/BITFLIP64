@@ -84,23 +84,14 @@ public:
         timeLimitHit  = false;
         searchStart   = std::chrono::steady_clock::now();
 
-        int empty = board.emptyCount();
-
-        // Difficulty settings
-        int endgameThresh, maxDepth;
+        int maxDepth, endgameThresh;
         switch (difficulty) {
             case 0:  timeLimitMs = 200;  endgameThresh =  0; maxDepth =  3; break;
             case 1:  timeLimitMs = 1200; endgameThresh = 10; maxDepth = 60; break;
-            default: timeLimitMs = 3000; endgameThresh = 20; maxDepth = 60; break;
+            default: timeLimitMs = 3000; endgameThresh = 18; maxDepth = 60; break; // slightly safer threshold
         }
 
-        // Perfect endgame solve when close enough to terminal
-        if (empty <= endgameThresh && difficulty > 0) {
-            return getBestMoveEndgame(board, isBlack);
-        }
-
-        // Iterative deepening
-        return getBestMoveAB(board, isBlack, maxDepth);
+        return getBestMoveAB(board, isBlack, maxDepth, endgameThresh);
     }
 
 private:
@@ -116,10 +107,6 @@ private:
     }
 
     // ── Edge stability ────────────────────────────────────────────────
-    // Counts discs in stable runs from owned corners along each of the 4
-    // board edges. Uses per-edge bitmasks to avoid direction double-count.
-    // Corner squares naturally appear in two edge counts, giving them extra
-    // weight (they are doubly stable).
     static int edgeStabilityCount(uint64_t player) {
         int count = 0;
 
@@ -163,23 +150,18 @@ private:
     }
 
     // ── Evaluation function ───────────────────────────────────────────
-    // Called at non-terminal leaf nodes. Returns score from isBlack's perspective.
     int evaluate(const OthelloBoard& board, bool isBlack) const {
         uint64_t mine  = isBlack ? board.black : board.white;
         uint64_t opp   = isBlack ? board.white : board.black;
         uint64_t empty = ~(mine | opp);
         int emptyCount = board.emptyCount();
 
-        // ── Positional weights ──────────────────────────────────────────
         int posScore = 0;
         uint64_t tmp = mine;
         while (tmp) { int c = __builtin_ctzll(tmp); posScore += POS_WEIGHTS[c]; tmp &= tmp-1; }
         tmp = opp;
         while (tmp) { int c = __builtin_ctzll(tmp); posScore -= POS_WEIGHTS[c]; tmp &= tmp-1; }
 
-        // ── X-square correction ─────────────────────────────────────────
-        // If a player owns both an X-square and its adjacent corner, the
-        // X-square is now stable — negate the -40 penalty.
         static constexpr int XS[4] = { 9, 14, 49, 54 };
         static constexpr int XC[4] = { 0,  7, 56, 63 };
         for (int i = 0; i < 4; i++) {
@@ -188,31 +170,22 @@ private:
             if ((opp  & xBit) && (opp  & cBit)) posScore -= 40;
         }
 
-        // ── Edge stability ──────────────────────────────────────────────
         int stability = edgeStabilityCount(mine) - edgeStabilityCount(opp);
 
-        // ── Frontier discs (internal mobility) ─────────────────────────
         int myFront  = frontierCount(mine, empty);
         int oppFront = frontierCount(opp,  empty);
         int frontier = (myFront + oppFront > 0)
                      ? -100 * (myFront - oppFront) / (myFront + oppFront)
                      : 0;
 
-        // ── Mobility ────────────────────────────────────────────────────
         int myMoves  = __builtin_popcountll(board.getLegalMoves(isBlack));
         int oppMoves = __builtin_popcountll(board.getLegalMoves(!isBlack));
         int mobility = (myMoves + oppMoves > 0)
                      ? 100 * (myMoves - oppMoves) / (myMoves + oppMoves) : 0;
 
-        // ── Disc count (only near the end) ──────────────────────────────
         int discW    = (emptyCount < 20) ? (20 - emptyCount) : 0;
         int discDiff = __builtin_popcountll(mine) - __builtin_popcountll(opp);
 
-        // ── Phase-adaptive weights ──────────────────────────────────────
-        // Early:    mobility >> position  (keep options open)
-        // Midgame:  balanced
-        // Late:     stability rises, disc count kicks in
-        //           (perfect solver takes over at ≤20 empty anyway)
         int posW, mobW, frontW, stabW;
         if      (emptyCount > 40) { posW=1; mobW=8; frontW=3; stabW=2; }
         else if (emptyCount > 20) { posW=2; mobW=5; frontW=4; stabW=4; }
@@ -233,11 +206,9 @@ private:
     }
 
     // ── Ordered move iteration ────────────────────────────────────────────────
-    // Yields moves from `legalMask` in MOVE_ORDER priority.
     std::vector<int> orderedMoves(uint64_t legalMask, int ttMove = -1) const {
         std::vector<int> moves;
         moves.reserve(__builtin_popcountll(legalMask));
-        // TT move first for better pruning
         if (ttMove >= 0 && ttMove < 64 && (legalMask >> ttMove & 1))
             moves.push_back(ttMove);
         for (int c : MOVE_ORDER)
@@ -246,113 +217,20 @@ private:
         return moves;
     }
 
-    // ── Negamax alpha-beta ────────────────────────────────────────────────────
-    // Returns score from current player's perspective.
-    int negamax(const OthelloBoard& board, bool isBlack, int depth, int alpha, int beta) {
+    // ── Perfect endgame solver ────────────────────────────────────────────────
+    int negamaxPerfect(const OthelloBoard& board, bool isBlack, int alpha, int beta) {
         if (timeLimitHit) return 0;
         nodesSearched++;
 
-        // TT probe
-        uint64_t key = board.hashKey() ^ (isBlack ? 0xAAAAAAAAAAAAAAAAULL : 0);
-        TTEntry* tte = ttLookup(key);
-        int ttMove = -1;
-        if (tte->key == key && tte->depth >= depth) {
-            if (tte->flag == 0) return tte->score;
-            if (tte->flag == 1) alpha = std::max(alpha, tte->score);
-            if (tte->flag == 2) beta  = std::min(beta,  tte->score);
-            if (alpha >= beta)  return tte->score;
-            ttMove = tte->move;
-        } else if (tte->key == key) {
-            ttMove = tte->move;
-        }
-
-        uint64_t legalMask = board.getLegalMoves(isBlack);
-
-        // No legal moves: pass
-        if (legalMask == 0) {
-            if (board.mustPass(!isBlack)) {
-                // Both sides pass = game over
-                int s = board.score();
-                int raw = isBlack ? s : -s;
-                return raw + (raw > 0 ? 1000 : (raw < 0 ? -1000 : 0));
-            }
-            return -negamax(board, !isBlack, depth, -beta, -alpha);
-        }
-
-        if (depth == 0) return evaluate(board, isBlack);
-
-        // Check time every 1024 nodes
         if ((nodesSearched & 1023) == 0 && timeUp()) {
             timeLimitHit = true;
             return 0;
         }
 
-        int best = INT_MIN;
-        int bestMove = -1;
-        int origAlpha = alpha;
-
-        for (int cell : orderedMoves(legalMask, ttMove)) {
-            int val = -negamax(board.afterMove(cell, isBlack), !isBlack, depth - 1, -beta, -alpha);
-            if (timeLimitHit) return 0;
-            if (val > best) { best = val; bestMove = cell; }
-            if (val > alpha) alpha = val;
-            if (alpha >= beta) break;  // cutoff
-        }
-
-        // TT store
-        if (!timeLimitHit) {
-            tte->key   = key;
-            tte->score = best;
-            tte->depth = (int8_t)depth;
-            tte->move  = (int8_t)(bestMove < 0 ? OthelloBoard::PASS : bestMove);
-            tte->flag  = (int8_t)(best <= origAlpha ? 2 : (best >= beta ? 1 : 0));
-        }
-
-        return best;
-    }
-
-    // ── Iterative deepening driver ────────────────────────────────────────────
-    int getBestMoveAB(const OthelloBoard& board, bool isBlack, int maxDepth) {
-        uint64_t legalMask = board.getLegalMoves(isBlack);
-        if (legalMask == 0) return OthelloBoard::PASS;
-
-        // Only one legal move? Play it immediately.
-        if (__builtin_popcountll(legalMask) == 1)
-            return __builtin_ctzll(legalMask);
-
-        ttClear();
-        int bestMove = __builtin_ctzll(legalMask);  // fallback
-
-        for (int depth = 1; depth <= maxDepth && !timeLimitHit; depth++) {
-            int alpha = INT_MIN + 1, beta = INT_MAX;
-            int bestAtDepth = -1;
-            int bestScore   = INT_MIN;
-
-            for (int cell : orderedMoves(legalMask, bestMove)) {
-                int val = -negamax(board.afterMove(cell, isBlack), !isBlack, depth - 1, -beta, -alpha);
-                if (timeLimitHit) break;
-                if (val > bestScore) { bestScore = val; bestAtDepth = cell; }
-                if (val > alpha) alpha = val;
-            }
-
-            if (!timeLimitHit && bestAtDepth >= 0)
-                bestMove = bestAtDepth;
-        }
-
-        return bestMove;
-    }
-
-    // ── Perfect endgame solver ────────────────────────────────────────────────
-    // Exact disc-count negamax; no evaluation function, just terminal score.
-    int negamaxPerfect(const OthelloBoard& board, bool isBlack, int alpha, int beta) {
-        nodesSearched++;
-
-        // TT probe
         uint64_t key = board.hashKey() ^ (isBlack ? 0xAAAAAAAAAAAAAAAAULL : 0);
         TTEntry* tte = ttLookup(key);
         int ttMove = -1;
         
-        // Depth 64 signifies branch is solved completely to a terminal node
         if (tte->key == key && tte->depth >= 64) {
             if (tte->flag == 0) return tte->score;
             if (tte->flag == 1) alpha = std::max(alpha, tte->score);
@@ -368,7 +246,7 @@ private:
         if (legalMask == 0) {
             if (board.mustPass(!isBlack)) {
                 int s = board.score();
-                return isBlack ? s : -s;  // positive = current player winning
+                return isBlack ? s : -s; 
             }
             return -negamaxPerfect(board, !isBlack, -beta, -alpha);
         }
@@ -379,36 +257,115 @@ private:
 
         for (int cell : orderedMoves(legalMask, ttMove)) {
             int val = -negamaxPerfect(board.afterMove(cell, isBlack), !isBlack, -beta, -alpha);
+            if (timeLimitHit) return 0;
             if (val > best) { best = val; bestMove = cell; }
             if (val > alpha) alpha = val;
-            if (alpha >= beta) break;  // cutoff
+            if (alpha >= beta) break;
         }
 
-        // TT store
-        tte->key   = key;
-        tte->score = best;
-        tte->depth = 64; // Marked as perfect solver depth
-        tte->move  = (int8_t)(bestMove < 0 ? OthelloBoard::PASS : bestMove);
-        tte->flag  = (int8_t)(best <= origAlpha ? 2 : (best >= beta ? 1 : 0));
+        if (!timeLimitHit) {
+            tte->key   = key;
+            tte->score = best;
+            tte->depth = 64; 
+            tte->move  = (int8_t)(bestMove < 0 ? OthelloBoard::PASS : bestMove);
+            tte->flag  = (int8_t)(best <= origAlpha ? 2 : (best >= beta ? 1 : 0));
+        }
 
         return best;
     }
 
-    int getBestMoveEndgame(const OthelloBoard& board, bool isBlack) {
+    // ── Negamax alpha-beta ────────────────────────────────────────────────────
+    int negamax(const OthelloBoard& board, bool isBlack, int depth, int alpha, int beta, int endgameThresh) {
+        if (timeLimitHit) return 0;
+
+        int empty = board.emptyCount();
+        if (empty <= endgameThresh && depth >= empty) {
+            return negamaxPerfect(board, isBlack, alpha, beta);
+        }
+
+        nodesSearched++;
+
+        uint64_t key = board.hashKey() ^ (isBlack ? 0xAAAAAAAAAAAAAAAAULL : 0);
+        TTEntry* tte = ttLookup(key);
+        int ttMove = -1;
+        if (tte->key == key && tte->depth >= depth) {
+            if (tte->flag == 0) return tte->score;
+            if (tte->flag == 1) alpha = std::max(alpha, tte->score);
+            if (tte->flag == 2) beta  = std::min(beta,  tte->score);
+            if (alpha >= beta)  return tte->score;
+            ttMove = tte->move;
+        } else if (tte->key == key) {
+            ttMove = tte->move;
+        }
+
+        uint64_t legalMask = board.getLegalMoves(isBlack);
+
+        if (legalMask == 0) {
+            if (board.mustPass(!isBlack)) {
+                int s = board.score();
+                int raw = isBlack ? s : -s;
+                return raw + (raw > 0 ? 1000 : (raw < 0 ? -1000 : 0));
+            }
+            return -negamax(board, !isBlack, depth, -beta, -alpha, endgameThresh);
+        }
+
+        if (depth == 0) return evaluate(board, isBlack);
+
+        if ((nodesSearched & 1023) == 0 && timeUp()) {
+            timeLimitHit = true;
+            return 0;
+        }
+
+        int best = INT_MIN;
+        int bestMove = -1;
+        int origAlpha = alpha;
+
+        for (int cell : orderedMoves(legalMask, ttMove)) {
+            int val = -negamax(board.afterMove(cell, isBlack), !isBlack, depth - 1, -beta, -alpha, endgameThresh);
+            if (timeLimitHit) return 0;
+            if (val > best) { best = val; bestMove = cell; }
+            if (val > alpha) alpha = val;
+            if (alpha >= beta) break;
+        }
+
+        if (!timeLimitHit) {
+            tte->key   = key;
+            tte->score = best;
+            tte->depth = (int8_t)depth;
+            tte->move  = (int8_t)(bestMove < 0 ? OthelloBoard::PASS : bestMove);
+            tte->flag  = (int8_t)(best <= origAlpha ? 2 : (best >= beta ? 1 : 0));
+        }
+
+        return best;
+    }
+
+    // ── Iterative deepening driver ────────────────────────────────────────────
+    int getBestMoveAB(const OthelloBoard& board, bool isBlack, int maxDepth, int endgameThresh) {
         uint64_t legalMask = board.getLegalMoves(isBlack);
         if (legalMask == 0) return OthelloBoard::PASS;
 
-        ttClear();
-        int bestMove  = -1;
-        int bestScore = INT_MIN;
-        int alpha = INT_MIN + 1;
-        int beta = INT_MAX;
+        if (__builtin_popcountll(legalMask) == 1)
+            return __builtin_ctzll(legalMask);
 
-        for (int cell : orderedMoves(legalMask)) {
-            int val = -negamaxPerfect(board.afterMove(cell, isBlack), !isBlack, -beta, -alpha);
-            if (val > bestScore) { bestScore = val; bestMove = cell; }
-            if (val > alpha) alpha = val;
+        ttClear();
+        int bestMove = __builtin_ctzll(legalMask); 
+
+        for (int depth = 1; depth <= maxDepth && !timeLimitHit; depth++) {
+            int alpha = INT_MIN + 1, beta = INT_MAX;
+            int bestAtDepth = -1;
+            int bestScore   = INT_MIN;
+
+            for (int cell : orderedMoves(legalMask, bestMove)) {
+                int val = -negamax(board.afterMove(cell, isBlack), !isBlack, depth - 1, -beta, -alpha, endgameThresh);
+                if (timeLimitHit) break;
+                if (val > bestScore) { bestScore = val; bestAtDepth = cell; }
+                if (val > alpha) alpha = val;
+            }
+
+            if (!timeLimitHit && bestAtDepth >= 0)
+                bestMove = bestAtDepth;
         }
-        return (bestMove < 0) ? OthelloBoard::PASS : bestMove;
+
+        return bestMove;
     }
 };

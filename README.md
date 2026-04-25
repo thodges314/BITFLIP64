@@ -47,6 +47,8 @@ BITFLIP64/
 ├── index.html              # Game UI
 ├── style.css               # Dark theme, LCD title, disc flip animation
 ├── app.js                  # Game controller
+├── favicon.svg             # Vector favicon (Othello 2×2 starting position)
+├── favicon.ico             # Rasterised favicon (16/32/48×)
 ├── Makefile                # Build: make wasm | make serve
 └── README.md
 ```
@@ -91,7 +93,7 @@ After the first (best-ordered) move is searched with a full window, every subseq
 4. **Static MOVE_ORDER** — corners → edges → interior → X-squares (absolute fallback / tiebreaker)
 
 **Perfect endgame intercept:**
-When the search depth within `negamax` reaches the number of empty squares and the position is within the endgame threshold (≤10 or ≤20 empty, per difficulty), the call is transparently redirected to `negamaxPerfect`. This means iterative deepening seeds the TT with well-ordered move hints before the exact deep search fires — far more efficient than a cold-start 20-ply search.
+When the search depth within `negamax` reaches the number of empty squares and the position is within the endgame threshold (≤10 or ≤24 empty, per difficulty), the call is transparently redirected to `negamaxPerfect`. This means iterative deepening seeds the TT with well-ordered move hints before the exact deep search fires — far more efficient than a cold-start 24-ply search.
 
 **Time-limit safety:**
 `negamaxPerfect` checks `timeLimitHit` on every node entry and polls `timeUp()` every 1024 nodes. If the budget is exceeded, it aborts and the ID loop returns the best result from the previous completed depth.

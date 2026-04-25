@@ -27,7 +27,7 @@ from typing import Tuple
 # ══════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
 # ══════════════════════════════════════════════════════════════════════════════
-MAX_DEPTH            = 28       # Book positions for the first N moves
+MAX_DEPTH            = 32       # Book positions for the first N moves
 MIN_FREQ             = 10       # Drop positions seen < N times
 CHECKPOINT_INTERVAL  = 10_000   # Pickle checkpoint every N games
 PROGRESS_INTERVAL    = 1_000    # Console update every N games

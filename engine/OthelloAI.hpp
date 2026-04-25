@@ -165,7 +165,7 @@ public:
         switch (difficulty) {
             case 0:  timeLimitMs = 200;  endgameThresh =  0; maxDepth =  3; break;
             case 1:  timeLimitMs = 1200; endgameThresh = 10; maxDepth = 60; break;
-            default: timeLimitMs = 5000; endgameThresh = 28; maxDepth = 60; break;
+            default: timeLimitMs = 5000; endgameThresh = 32; maxDepth = 60; break;
         }
 
         return getBestMoveAB(board, isBlack, maxDepth, endgameThresh);
@@ -500,11 +500,11 @@ private:
             return __builtin_ctzll(legalMask);
 
         // ── Opening book probe ────────────────────────────────────────────────
-        // Only active for the first MAX_DEPTH=28 moves (empty ≥ 32).
+        // Only active for the first MAX_DEPTH=32 moves (empty ≥ 28).
         // Compute canonical D4 form, look up in book, reverse transform.
         // Sets lastMoveWasBook = true on hit (queried by wasm_wasBookMove).
         lastMoveWasBook = false;
-        if (board.emptyCount() >= 32) {
+        if (board.emptyCount() >= 28) {
             auto [cb, cw, t] = canonForm(board.black, board.white);
             uint64_t key = OpeningBook::hash_pos(cb, cw);
             int canon_cell  = OpeningBook::lookup(key);

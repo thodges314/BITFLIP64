@@ -104,48 +104,125 @@ public:
     }
 
 private:
-    // ── Evaluation function ───────────────────────────────────────────────────
+    // ── Frontier discs ────────────────────────────────────────────────
+    // A frontier disc is adjacent to at least one empty square — it can
+    // be targeted for flipping. Fewer frontier discs = better structure.
+    static int frontierCount(uint64_t player, uint64_t empty) {
+        uint64_t adj = OthelloBoard::shiftN(empty)  | OthelloBoard::shiftS(empty)
+                     | OthelloBoard::shiftE(empty)  | OthelloBoard::shiftW(empty)
+                     | OthelloBoard::shiftNE(empty) | OthelloBoard::shiftNW(empty)
+                     | OthelloBoard::shiftSE(empty) | OthelloBoard::shiftSW(empty);
+        return __builtin_popcountll(player & adj);
+    }
+
+    // ── Edge stability ────────────────────────────────────────────────
+    // Counts discs in stable runs from owned corners along each of the 4
+    // board edges. Uses per-edge bitmasks to avoid direction double-count.
+    // Corner squares naturally appear in two edge counts, giving them extra
+    // weight (they are doubly stable).
+    static int edgeStabilityCount(uint64_t player) {
+        int count = 0;
+
+        // Top edge: cells 0–7
+        {
+            uint64_t mask = 0;
+            if ((player >> 0) & 1)
+                for (int c = 0; c < 8 && ((player >> c) & 1); ++c) mask |= 1ULL << c;
+            if ((player >> 7) & 1)
+                for (int c = 7; c >= 0 && ((player >> c) & 1); --c) mask |= 1ULL << c;
+            count += __builtin_popcountll(mask);
+        }
+        // Bottom edge: cells 56–63
+        {
+            uint64_t mask = 0;
+            if ((player >> 56) & 1)
+                for (int c = 56; c < 64 && ((player >> c) & 1); ++c) mask |= 1ULL << c;
+            if ((player >> 63) & 1)
+                for (int c = 63; c >= 56 && ((player >> c) & 1); --c) mask |= 1ULL << c;
+            count += __builtin_popcountll(mask);
+        }
+        // Left edge: cells 0,8,16,24,32,40,48,56
+        {
+            uint64_t mask = 0;
+            if ((player >> 0) & 1)
+                for (int c = 0; c < 64 && ((player >> c) & 1); c += 8) mask |= 1ULL << c;
+            if ((player >> 56) & 1)
+                for (int c = 56; c >= 0 && ((player >> c) & 1); c -= 8) mask |= 1ULL << c;
+            count += __builtin_popcountll(mask);
+        }
+        // Right edge: cells 7,15,23,31,39,47,55,63
+        {
+            uint64_t mask = 0;
+            if ((player >> 7) & 1)
+                for (int c = 7; c < 64 && ((player >> c) & 1); c += 8) mask |= 1ULL << c;
+            if ((player >> 63) & 1)
+                for (int c = 63; c >= 7 && ((player >> c) & 1); c -= 8) mask |= 1ULL << c;
+            count += __builtin_popcountll(mask);
+        }
+        return count;
+    }
+
+    // ── Evaluation function ───────────────────────────────────────────
     // Called at non-terminal leaf nodes. Returns score from isBlack's perspective.
     int evaluate(const OthelloBoard& board, bool isBlack) const {
-        uint64_t mine = isBlack ? board.black : board.white;
-        uint64_t opp  = isBlack ? board.white : board.black;
+        uint64_t mine  = isBlack ? board.black : board.white;
+        uint64_t opp   = isBlack ? board.white : board.black;
+        uint64_t empty = ~(mine | opp);
+        int emptyCount = board.emptyCount();
 
-        // Positional weights
+        // ── Positional weights ──────────────────────────────────────────
         int posScore = 0;
         uint64_t tmp = mine;
         while (tmp) { int c = __builtin_ctzll(tmp); posScore += POS_WEIGHTS[c]; tmp &= tmp-1; }
         tmp = opp;
         while (tmp) { int c = __builtin_ctzll(tmp); posScore -= POS_WEIGHTS[c]; tmp &= tmp-1; }
 
-        // X-square correction (Gemini / standard Othello theory):
-        // An X-square (diagonal to corner) is -40 because it hands the corner
-        // to the opponent. BUT if the *same* player already owns the corner,
-        // the X-square is now stable and the penalty should be undone.
-        // Pairs: X-square → adjacent corner
-        static constexpr int XS[4] = { 9, 14, 49, 54 };  // X-squares
-        static constexpr int XC[4] = { 0,  7, 56, 63 };  // their corners
+        // ── X-square correction ─────────────────────────────────────────
+        // If a player owns both an X-square and its adjacent corner, the
+        // X-square is now stable — negate the -40 penalty.
+        static constexpr int XS[4] = { 9, 14, 49, 54 };
+        static constexpr int XC[4] = { 0,  7, 56, 63 };
         for (int i = 0; i < 4; i++) {
-            uint64_t xBit = 1ULL << XS[i];
-            uint64_t cBit = 1ULL << XC[i];
-            // I own the X-square: if I also own its corner, negate the -40
+            uint64_t xBit = 1ULL << XS[i], cBit = 1ULL << XC[i];
             if ((mine & xBit) && (mine & cBit)) posScore += 40;
-            // Opponent owns the X-square: if they also own its corner, undo the-40 that became +40 from my perspective
-            if ((opp & xBit) && (opp & cBit))   posScore -= 40;
+            if ((opp  & xBit) && (opp  & cBit)) posScore -= 40;
         }
 
-        // Mobility (legal move count difference, normalised to ±100)
+        // ── Edge stability ──────────────────────────────────────────────
+        int stability = edgeStabilityCount(mine) - edgeStabilityCount(opp);
+
+        // ── Frontier discs (internal mobility) ─────────────────────────
+        int myFront  = frontierCount(mine, empty);
+        int oppFront = frontierCount(opp,  empty);
+        int frontier = (myFront + oppFront > 0)
+                     ? -100 * (myFront - oppFront) / (myFront + oppFront)
+                     : 0;
+
+        // ── Mobility ────────────────────────────────────────────────────
         int myMoves  = __builtin_popcountll(board.getLegalMoves(isBlack));
         int oppMoves = __builtin_popcountll(board.getLegalMoves(!isBlack));
-        int mobility = 0;
-        if (myMoves + oppMoves > 0)
-            mobility = 100 * (myMoves - oppMoves) / (myMoves + oppMoves);
+        int mobility = (myMoves + oppMoves > 0)
+                     ? 100 * (myMoves - oppMoves) / (myMoves + oppMoves) : 0;
 
-        // Disc count (low weight except near the end)
-        int empty    = board.emptyCount();
-        int discW    = (empty < 20) ? (20 - empty) : 0;
+        // ── Disc count (only near the end) ──────────────────────────────
+        int discW    = (emptyCount < 20) ? (20 - emptyCount) : 0;
         int discDiff = __builtin_popcountll(mine) - __builtin_popcountll(opp);
 
-        return posScore * 2 + mobility * 5 + discDiff * discW;
+        // ── Phase-adaptive weights ──────────────────────────────────────
+        // Early:    mobility >> position  (keep options open)
+        // Midgame:  balanced
+        // Late:     stability rises, disc count kicks in
+        //           (perfect solver takes over at ≤20 empty anyway)
+        int posW, mobW, frontW, stabW;
+        if      (emptyCount > 40) { posW=1; mobW=8; frontW=3; stabW=2; }
+        else if (emptyCount > 20) { posW=2; mobW=5; frontW=4; stabW=4; }
+        else                      { posW=3; mobW=3; frontW=4; stabW=6; }
+
+        return posScore  * posW
+             + mobility  * mobW
+             + frontier  * frontW
+             + stability * stabW
+             + discDiff  * discW;
     }
 
     // ── Time check ────────────────────────────────────────────────────────────

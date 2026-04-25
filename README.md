@@ -1,6 +1,6 @@
 # BITFLIP-64
 
-A browser-playable Othello (Reversi) game backed by a WebAssembly **alpha-beta engine** with iterative deepening, positional evaluation, and a perfect endgame solver. Three difficulty levels from beginner-friendly to near-optimal play.
+A browser-playable Othello (Reversi) game backed by a WebAssembly **alpha-beta engine** with iterative deepening, transposition table caching, and a perfect endgame solver. Three difficulty levels from beginner-friendly to near-optimal play.
 
 **[Play it live →](https://thodges314.github.io/BITFLIP64/)**
 
@@ -12,12 +12,18 @@ A browser-playable Othello (Reversi) game backed by a WebAssembly **alpha-beta e
   - **Easy** — depth-3 fixed search, ~200 ms
   - **Medium** — iterative deepening ~1.2 s, perfect solve ≤10 empty
   - **Hard** — iterative deepening ~3 s, perfect solve ≤20 empty
-- **Perfect endgame solver** — switches from heuristic to exact disc-count negamax near game end
-- **Positional weight table** — corners (+120), X-squares (−40), C-squares (−20), edges (+20)
-- **Mobility evaluation** — penalises reducing your own options while expanding opponent's
-- **Transposition table** — 1M entries keyed by Zobrist hash; avoids re-searching known positions
-- **Move ordering** — corners first, X-squares last; dramatically improves alpha-beta pruning
-- **Disc flip animation** — CSS 3D rotateY gives authentic Othello flip visual
+- **Perfect endgame solver** — at ≤20 empty squares the engine switches from heuristic evaluation to exact disc-count negamax, guaranteeing mathematically optimal play in the final phase
+- **Iterative-deepening-integrated perfect solver** — the perfect solve is reached via the same ID loop as the midgame, so the transposition table is fully seeded with strong move ordering before the deep exact search begins
+- **Time-limit safety** — if a 20-ply perfect solve approaches the 3-second budget, the engine bails out and returns the best move found at the previous completed depth, preventing any browser UI freeze
+- **Phase-adaptive evaluation** — weights shift between opening, midgame, and late-game phases automatically
+- **Positional weight table** — corners (+120), X-squares (−40), C-squares (−20), edges (+20), with X-square correction when the adjacent corner is owned
+- **Mobility evaluation** — rewards having more legal moves than the opponent (normalised ±100)
+- **Frontier disc penalty** — penalises discs adjacent to empty squares, which are vulnerable to being flipped
+- **Edge stability bonus** — rewards discs in stable runs connected to owned corners along each edge
+- **Transposition table** — 1 M entries keyed by Zobrist hash with exact/lower/upper bound flags; avoids re-searching known positions across both midgame and perfect-solve phases
+- **Move ordering** — TT best move tried first, then `MOVE_ORDER[]` (corners → edges → interior → X-squares last); dramatically improves alpha-beta pruning
+- **Last-move indicator** — a red dot marks the most recently played disc on the board, matching standard Othello UI conventions
+- **Disc flip animation** — CSS 3D `rotateY` gives authentic Othello flip visual
 - **Auto-pass** — when a player has no legal moves, the turn passes automatically
 - **Web Worker** — engine runs in a background thread; UI is always responsive
 
@@ -67,19 +73,27 @@ Legal move generation and flip computation both use the same direction-scan loop
 
 **Iterative deepening negamax alpha-beta:**
 1. Starts at depth 1, deepens until time limit is hit
-2. TT move from the previous iteration tried first (dramatically improves pruning)
+2. TT best move from the previous completed iteration tried first (dramatically improves pruning)
 3. Remaining moves ordered by `MOVE_ORDER[]` (corners → edges → interior → X-squares)
-4. Transposition table stores `(key, score, depth, flag, move)`
+4. Transposition table stores `(key, score, depth, flag, move)` with exact/lower/upper bound flags
 
-**Evaluation function** (non-terminal leaves):
-```
-score = positional_weights × 2   (POS_WEIGHTS[64] table)
-      + mobility_ratio    × 5    (own − opp legal moves, normalised ±100)
-      + disc_count        × 0–20  (weight increases as board fills)
-```
+**Perfect endgame intercept:**
+When the search depth within `negamax` reaches the number of empty squares and the position is within the endgame threshold (≤10 or ≤20 empty, per difficulty), the call is transparently redirected to `negamaxPerfect`. This means iterative deepening seeds the TT with well-ordered move hints before the exact deep search fires — far more efficient than a cold-start 20-ply search.
 
-**Perfect endgame** (≤10/20 empty depending on difficulty):
-Pure negamax disc-count search, no evaluation needed. With corner-first move ordering and alpha-beta, solves 20-empty positions in < 1 s on WASM.
+**Time-limit safety:**
+`negamaxPerfect` checks `timeLimitHit` on every node entry and polls `timeUp()` every 1024 nodes. If the budget is exceeded, it aborts and the ID loop returns the best result from the previous completed depth.
+
+**Evaluation function** (non-terminal leaves, phase-adaptive weights):
+
+| Term | Early (>40 empty) | Mid (>20 empty) | Late (≤20 empty) |
+|---|---|---|---|
+| Positional weights | ×1 | ×2 | ×3 |
+| Mobility (±100) | ×8 | ×5 | ×3 |
+| Frontier discs (±100) | ×3 | ×4 | ×4 |
+| Edge stability | ×2 | ×4 | ×6 |
+| Disc count | ×0 | ×0 | ×0–20 |
+
+Disc count weight ramps from 0 at 20 empty to 20 at 0 empty, bridging heuristic evaluation into the exact endgame phase.
 
 ### WASM API (`wasm_api.cpp`)
 
@@ -97,6 +111,6 @@ Pure negamax disc-count search, no evaluation needed. With corner-first move ord
 | Game | 5×5 Go | 8×8 Othello |
 | Algorithm | UCT-RAVE MCTS | Alpha-beta negamax |
 | Parallelism | 4 pthreads | Single-threaded |
-| Endgame | Greedy pass-suppress | Perfect exact solve |
-| Evaluation | Chinese area scoring | Positional + mobility |
+| Endgame | Greedy pass-suppress | Perfect exact solve (≤20 empty) |
+| Evaluation | Chinese area scoring | Positional + mobility + frontier + edge stability |
 | Opening | KataGo 10-ply book | None (strong from move 1) |

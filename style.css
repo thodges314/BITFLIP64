@@ -728,3 +728,5 @@ body {
   flex-shrink: 0;
   opacity: 0.8;
 }
+.footer-gh { opacity: 0.6; transition: opacity 0.2s; }
+.footer-gh:hover { opacity: 1; color: var(--text) !important; }

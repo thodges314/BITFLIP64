@@ -15,7 +15,7 @@
 // Difficulty levels:
 //   0 = Easy   — depth 3 fixed, no endgame solver
 //   1 = Medium  — iterative deepening ~1.2 s, perfect solve ≤10 empty
-//   2 = Hard    — iterative deepening ~4.0 s, perfect solve ≤22 empty
+//   2 = Hard    — iterative deepening ~4.0 s, perfect solve ≤24 empty
 // ============================================================================
 #pragma once
 #include "OthelloBoard.hpp"
@@ -101,7 +101,7 @@ public:
         switch (difficulty) {
             case 0:  timeLimitMs = 200;  endgameThresh =  0; maxDepth =  3; break;
             case 1:  timeLimitMs = 1200; endgameThresh = 10; maxDepth = 60; break;
-            default: timeLimitMs = 4000; endgameThresh = 22; maxDepth = 60; break;
+            default: timeLimitMs = 4000; endgameThresh = 24; maxDepth = 60; break;
         }
 
         return getBestMoveAB(board, isBlack, maxDepth, endgameThresh);

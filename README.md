@@ -1,6 +1,6 @@
 # BITFLIP-64
 
-A browser-playable Othello (Reversi) game backed by a WebAssembly **alpha-beta engine** with iterative deepening, transposition table caching, and a perfect endgame solver. Three difficulty levels from beginner-friendly to near-optimal play.
+A browser-playable Othello (Reversi) game backed by a WebAssembly **alpha-beta engine** with iterative deepening, aspiration windows, Principal Variation Search, killer and history move heuristics, transposition table caching, and a perfect endgame solver. Three difficulty levels from beginner-friendly to near-optimal play.
 
 **[Play it live →](https://thodges314.github.io/BITFLIP64/)**
 
@@ -11,17 +11,21 @@ A browser-playable Othello (Reversi) game backed by a WebAssembly **alpha-beta e
 - **Three difficulty levels**
   - **Easy** — depth-3 fixed search, ~200 ms
   - **Medium** — iterative deepening ~1.2 s, perfect solve ≤10 empty
-  - **Hard** — iterative deepening ~4 s, perfect solve ≤22 empty
-- **Perfect endgame solver** — at ≤20 empty squares the engine switches from heuristic evaluation to exact disc-count negamax, guaranteeing mathematically optimal play in the final phase
+  - **Hard** — iterative deepening ~4 s, perfect solve ≤24 empty
+- **Perfect endgame solver** — when ≤10 empty (Medium) or ≤24 empty (Hard), the engine switches to exact disc-count negamax, guaranteeing mathematically optimal play in the final phase
 - **Iterative-deepening-integrated perfect solver** — the perfect solve is reached via the same ID loop as the midgame, so the transposition table is fully seeded with strong move ordering before the deep exact search begins
-- **Time-limit safety** — if a 20-ply perfect solve approaches the 3-second budget, the engine bails out and returns the best move found at the previous completed depth, preventing any browser UI freeze
+- **Time-limit safety** — if a 24-ply perfect solve approaches the 4-second budget, the engine bails out and returns the best move found at the previous completed depth, preventing any browser UI freeze
+- **Aspiration windows** — each ID iteration opens with a narrow `[prev−25, prev+25]` score window; widens exponentially on fail-low/high, producing far more alpha-beta cutoffs when the score is stable
+- **Principal Variation Search (PVS)** — all non-first moves are probed with a null window first; only re-searched with full window if they fail high, cutting node count by 15–30%
+- **Killer move heuristic** — 2 slots per depth store moves that recently caused beta cutoffs in sibling branches; promoted above history-ranked candidates
+- **History heuristic** — a `history[64]` table accumulates `depth²` per beta cutoff; non-priority moves are sorted descending by score each iteration
 - **Phase-adaptive evaluation** — weights shift between opening, midgame, and late-game phases automatically
 - **Positional weight table** — corners (+120), X-squares (−40), C-squares (−20), edges (+20), with X-square correction when the adjacent corner is owned
 - **Mobility evaluation** — rewards having more legal moves than the opponent (normalised ±100)
 - **Frontier disc penalty** — penalises discs adjacent to empty squares, which are vulnerable to being flipped
 - **Edge stability bonus** — rewards discs in stable runs connected to owned corners along each edge
-- **Transposition table** — 1 M entries keyed by Zobrist hash with exact/lower/upper bound flags; avoids re-searching known positions across both midgame and perfect-solve phases
-- **Move ordering** — TT best move tried first, then `MOVE_ORDER[]` (corners → edges → interior → X-squares last); dramatically improves alpha-beta pruning
+- **Transposition table** — 1 M entries keyed by Zobrist hash with exact/lower/upper bound flags; avoids re-searching known positions across both midgame and perfect-solve phases
+- **Move ordering** — four-tier: TT best move → killer moves → history-scored → static `MOVE_ORDER[]` (corners → edges → interior → X-squares); dramatically improves alpha-beta pruning
 - **Last-move indicator** — a red dot marks the most recently played disc on the board, matching standard Othello UI conventions
 - **Disc flip animation** — CSS 3D `rotateY` gives authentic Othello flip visual
 - **Auto-pass** — when a player has no legal moves, the turn passes automatically
@@ -120,6 +124,6 @@ Disc count weight ramps from 0 at 20 empty to 20 at 0 empty, bridging heuristic 
 | Game | 5×5 Go | 8×8 Othello |
 | Algorithm | UCT-RAVE MCTS | Alpha-beta negamax |
 | Parallelism | 4 pthreads | Single-threaded |
-| Endgame | Greedy pass-suppress | Perfect exact solve (≤20 empty) |
+| Endgame | Greedy pass-suppress | Perfect exact solve (≤24 empty) |
 | Evaluation | Chinese area scoring | Positional + mobility + frontier + edge stability |
 | Opening | KataGo 10-ply book | None (strong from move 1) |

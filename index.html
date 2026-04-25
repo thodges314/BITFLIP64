@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BITFLIP-64 — Othello AI</title>
+  <title>BITFLIP-64</title>
   <meta name="description"
     content="Play Othello against a WebAssembly alpha-beta AI with positional strategy, mobility evaluation, and a perfect endgame solver. Three difficulty levels." />
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
@@ -86,14 +86,16 @@
             data-tooltip="Aspiration Windows — each new depth opens with a narrow score window around the previous result; more cutoffs mean the engine searches deeper in the same time budget">Aspiration
             Windows</span> &middot;
           <span
-            data-tooltip="Principal Variation Search — after the best move is searched fully, all others use a cheap null-window probe first; only re-searched if they might be better, cutting nodes by 15-30%">PVS</span> &middot;
+            data-tooltip="Principal Variation Search — after the best move is searched fully, all others use a cheap null-window probe first; only re-searched if they might be better, cutting nodes by 15-30%">PVS</span>
+          &middot;
           <span
-            data-tooltip="Killer Moves — 2 slots per depth remember moves that cut off sibling branches; promoted above history-ranked candidates so strong positional threats are tried early">Killers</span> &middot;
+            data-tooltip="Killer Moves — 2 slots per depth remember moves that cut off sibling branches; promoted above history-ranked candidates so strong positional threats are tried early">Killers</span>
+          &middot;
           <span
             data-tooltip="History Heuristic — moves that caused alpha-beta cutoffs earn depth² points; high-scoring moves are tried first, improving pruning efficiency as the search deepens">History
             Heuristic</span> &middot;
           <span
-            data-tooltip="Perfect Endgame Solver — when ≤10 or ≤22 empty squares remain (Medium/Hard), switches to an exact disc-count search that finds the provably optimal result by force">Perfect
+            data-tooltip="Perfect Endgame Solver — when ≤10 or ≤24 empty squares remain (Medium/Hard), switches to an exact disc-count search that finds the provably optimal result by force">Perfect
             Endgame</span>
         </p>
       </div>
@@ -163,13 +165,16 @@
           data-tooltip="Aspiration Windows — each new depth starts with a narrow α-β window around the previous score; faster cutoffs mean the engine reaches deeper depths within the time limit">Asp.
           Windows</span> &middot;
         <span
-          data-tooltip="Principal Variation Search — subsequent moves use a cheap null-window probe; only re-searched with full window if they might beat the current best, reducing nodes by 15-30%">PVS</span> &middot;
+          data-tooltip="Principal Variation Search — subsequent moves use a cheap null-window probe; only re-searched with full window if they might beat the current best, reducing nodes by 15-30%">PVS</span>
+        &middot;
         <span
-          data-tooltip="Killer Moves — 2 slots per depth store recent beta-cutoff moves from sibling branches; tried immediately after the TT move before any history-ranked candidate">Killers</span> &middot;
+          data-tooltip="Killer Moves — 2 slots per depth store recent beta-cutoff moves from sibling branches; tried immediately after the TT move before any history-ranked candidate">Killers</span>
+        &middot;
         <span
-          data-tooltip="History Heuristic — beta-cutoff moves earn depth² points stored in a 64-entry table; top-scoring squares are searched first, compounding pruning efficiency across depths">History</span> &middot;
+          data-tooltip="History Heuristic — beta-cutoff moves earn depth² points stored in a 64-entry table; top-scoring squares are searched first, compounding pruning efficiency across depths">History</span>
+        &middot;
         <span
-          data-tooltip="Perfect Endgame Solver — when ≤10 or ≤22 empty squares remain (Medium/Hard), switches to an exact disc-count search that finds the provably optimal result by force">&#x221e;
+          data-tooltip="Perfect Endgame Solver — when ≤10 or ≤24 empty squares remain (Medium/Hard), switches to an exact disc-count search that finds the provably optimal result by force">&#x221e;
           Endgame</span>
       </p>
     </section>

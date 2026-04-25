@@ -117,6 +117,22 @@ private:
         tmp = opp;
         while (tmp) { int c = __builtin_ctzll(tmp); posScore -= POS_WEIGHTS[c]; tmp &= tmp-1; }
 
+        // X-square correction (Gemini / standard Othello theory):
+        // An X-square (diagonal to corner) is -40 because it hands the corner
+        // to the opponent. BUT if the *same* player already owns the corner,
+        // the X-square is now stable and the penalty should be undone.
+        // Pairs: X-square → adjacent corner
+        static constexpr int XS[4] = { 9, 14, 49, 54 };  // X-squares
+        static constexpr int XC[4] = { 0,  7, 56, 63 };  // their corners
+        for (int i = 0; i < 4; i++) {
+            uint64_t xBit = 1ULL << XS[i];
+            uint64_t cBit = 1ULL << XC[i];
+            // I own the X-square: if I also own its corner, negate the -40
+            if ((mine & xBit) && (mine & cBit)) posScore += 40;
+            // Opponent owns the X-square: if they also own its corner, undo the-40 that became +40 from my perspective
+            if ((opp & xBit) && (opp & cBit))   posScore -= 40;
+        }
+
         // Mobility (legal move count difference, normalised to ±100)
         int myMoves  = __builtin_popcountll(board.getLegalMoves(isBlack));
         int oppMoves = __builtin_popcountll(board.getLegalMoves(!isBlack));

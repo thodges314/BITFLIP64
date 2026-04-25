@@ -4,8 +4,11 @@
 // Algorithm: Iterative-deepening alpha-beta negamax with:
 //   • Positional weight table (corners >> edges >> interior >> X-squares)
 //   • Mobility bonus (own legal moves − opponent legal moves)
+//   • Frontier disc penalty & edge stability bonus
 //   • Transposition table (1M entries, Zobrist-keyed)
-//   • Move ordering: corners first, X-squares last
+//   • Aspiration windows (narrows α-β window using previous iteration score)
+//   • History heuristic (cutoff moves sorted to front at each depth)
+//   • Move ordering: TT move first, then history score, then MOVE_ORDER
 //   • Perfect endgame solver when empty ≤ endgame threshold
 //
 // Difficulty levels:
@@ -75,6 +78,10 @@ public:
     bool timeLimitHit  = false;
     std::chrono::steady_clock::time_point searchStart;
     int  timeLimitMs   = 1000;
+
+    // History heuristic: tracks how often each square (0-63) caused a
+    // beta cutoff, weighted by depth².  Reset each call to getBestMove.
+    int  history[64]   = {};
 
     // ── Public API ────────────────────────────────────────────────────────────
     // Returns best cell index (0–63) or OthelloBoard::PASS.
@@ -206,6 +213,8 @@ private:
     }
 
     // ── Ordered move iteration ────────────────────────────────────────────────
+    // Priority: (1) TT best move, (2) history score descending,
+    // (3) static MOVE_ORDER (corners → edges → interior → X-squares).
     std::vector<int> orderedMoves(uint64_t legalMask, int ttMove = -1) const {
         std::vector<int> moves;
         moves.reserve(__builtin_popcountll(legalMask));
@@ -214,6 +223,11 @@ private:
         for (int c : MOVE_ORDER)
             if ((legalMask >> c & 1) && c != ttMove)
                 moves.push_back(c);
+        // Sort non-TT moves by history score (descending).
+        // stable_sort preserves MOVE_ORDER as tiebreaker.
+        int offset = (!moves.empty() && moves[0] == ttMove) ? 1 : 0;
+        std::stable_sort(moves.begin() + offset, moves.end(),
+            [this](int a, int b) { return history[a] > history[b]; });
         return moves;
     }
 
@@ -325,7 +339,11 @@ private:
             if (timeLimitHit) return 0;
             if (val > best) { best = val; bestMove = cell; }
             if (val > alpha) alpha = val;
-            if (alpha >= beta) break;
+            if (alpha >= beta) {
+                // Beta cutoff — reward this move in the history table.
+                history[cell] += depth * depth;
+                break;
+            }
         }
 
         if (!timeLimitHit) {
@@ -348,6 +366,7 @@ private:
             return __builtin_ctzll(legalMask);
 
         ttClear();
+        std::fill(std::begin(history), std::end(history), 0);
         int bestMove  = __builtin_ctzll(legalMask);
         int prevScore = 0;   // score from the previous completed iteration
 

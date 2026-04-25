@@ -61,12 +61,12 @@
 
         <!-- Tech stack info line -->
         <p class="tech-line">
-          <span class="tech-hl">⚡ WebAssembly</span> &middot;
-          C++ Engine &middot;
-          64-bit Bitboard &middot;
-          Alpha-Beta Negamax &middot;
-          Iterative Deepening &middot;
-          Perfect Endgame
+          <span class="tech-hl" data-tooltip="C++ engine compiled to WebAssembly — runs at near-native speed directly in your browser, no install needed">⚡ WebAssembly</span> &middot;
+          <span data-tooltip="The game AI is written in C++ for maximum performance, then compiled to a .wasm binary the browser executes directly">C++ Engine</span> &middot;
+          <span data-tooltip="The board is stored as two 64-bit integers (one per colour) — each bit maps to a square, enabling lightning-fast bitwise move generation">64-bit Bitboard</span> &middot;
+          <span data-tooltip="Alpha-Beta Negamax — a symmetric recursive search that prunes branches provably unable to change the outcome, dramatically shrinking the search tree">Alpha-Beta Negamax</span> &middot;
+          <span data-tooltip="Iterative Deepening Alpha-Beta — searches depth 1, 2, 3… until time runs out, always returning the best move found at the deepest completed level">Iterative Deepening</span> &middot;
+          <span data-tooltip="Perfect Endgame Solver — when ≤10–20 empty squares remain, switches to an exact disc-count search that finds the provably optimal result by force">Perfect Endgame</span>
         </p>
       </div>
     </section>

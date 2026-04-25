@@ -23,9 +23,7 @@ const CELLS = 64;
 
 let engine = null;  // WASM module instance
 let bufPtr  = null; // malloc'd Int32[64] in WASM heap
-let buf     = null; // JS view of that buffer
-let hiPtr   = null; // output buffer: high 32 bits of legal-move mask (unused by worker but allocated)
-let loPtr   = null; // output buffer: low  32 bits
+                    // (no cached view — HEAP32 accessed live to survive memory growth)
 
 // Resolve WASM assets relative to THIS worker's URL, not the page URL.
 const BASE = self.location.href.replace(/[^/]*$/, '');
@@ -41,9 +39,9 @@ async function init() {
     engine.ccall('wasm_init', null, [], []);
 
     bufPtr = engine._malloc(CELLS * 4);
-    buf    = new Int32Array(engine.HEAP32.buffer, bufPtr, CELLS);
-    hiPtr  = engine._malloc(4);
-    loPtr  = engine._malloc(4);
+    // Do NOT cache a typed-array view here — if WASM memory grows the
+    // underlying ArrayBuffer changes and any cached view becomes detached.
+    // Instead we write via engine.HEAP32 live in every message handler.
 
     self.postMessage({ id: 0, type: 'ready' });
   } catch (err) {
@@ -57,8 +55,9 @@ self.onmessage = function ({ data }) {
     if (type === 'getBestMove') {
       const { cells, isBlack, difficulty } = payload;
 
-      // Copy board state into WASM heap
-      for (let i = 0; i < CELLS; i++) buf[i] = cells[i];
+      // Write board into WASM heap (live access, safe after memory growth)
+      const base = bufPtr >> 2;  // byte offset → Int32 index
+      for (let i = 0; i < CELLS; i++) engine.HEAP32[base + i] = cells[i];
 
       // Run alpha-beta search
       const move = engine.ccall(

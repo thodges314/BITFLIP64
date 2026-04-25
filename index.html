@@ -66,17 +66,19 @@
 
       <!-- Score bar -->
       <div class="score-bar">
-        <div class="player-score" id="black-score-block">
+        <div class="score-side" id="black-score-block">
           <span class="disc-dot black-dot"></span>
-          <span class="player-label">Black</span>
-          <span class="disc-count" id="black-count">2</span>
+          <div class="score-stack">
+            <span class="disc-count" id="black-count">2</span>
+            <span class="player-label">Black</span>
+          </div>
         </div>
-        <div class="score-center">
-          <span class="score-label">Discs</span>
-        </div>
-        <div class="player-score right-score" id="white-score-block">
-          <span class="disc-count" id="white-count">2</span>
-          <span class="player-label">White</span>
+        <div class="score-sep">–</div>
+        <div class="score-side score-side-r" id="white-score-block">
+          <div class="score-stack score-stack-r">
+            <span class="disc-count" id="white-count">2</span>
+            <span class="player-label">White</span>
+          </div>
           <span class="disc-dot white-dot"></span>
         </div>
       </div>

@@ -103,64 +103,70 @@ const SoundFX = {
 };
 
 // ── Cyber-baroque Music Engine ────────────────────────────────────────────────
-// Procedural music: D-minor descending ground bass + square-wave melody.
-// Key: D minor (D E F G A Bb C) with harmonic minor C# on the dominant.
-// Structure: 4-bar repeating loop at ~118 BPM.
-//   Bass  — walking quarter-note pattern (sawtooth, filtered, staccato).
-//   Melody — 32 eighth-note sequence with a cyber echo tap.
+// Bach-style D-minor toccata, techno tempo. Sixteenth-note scalar runs
+// in the RH (square waves) over a driving quarter-note sawtooth bass.
+// Progression: Dm | C | Gm | A (harmonic minor, 4-bar loop x 2 = 8 bars).
 const MusicEngine = {
   ctx: null,
   masterGain: null,
   enabled: false,
 
-  BPM: 118,
-  get QL()  { return 60 / this.BPM; },     // quarter-note duration (s)
-  get E8L() { return this.QL / 2; },        // eighth-note duration (s)
+  BPM: 132,
+  get QL()  { return 60 / this.BPM; },           // quarter-note (s)
+  get S16() { return this.QL / 4; },              // sixteenth-note (s) ← melody unit
 
-  // ── 32 eighth-note melody (4 bars, D minor) ──────────────────────────────
-  // Bar 1 Dm:   D F A D5  A F E D
-  // Bar 2 C:    E G C5 E5  C5 G F E
-  // Bar 3 Bb:   D F Bb D5  Bb F D Bb3
-  // Bar 4 A(V): A C#5 E5 A  G E C#4 A3
+  // ── 64 sixteenth-note melody (4 bars at 132BPM) ───────────────────────────
+  // Inspired by Bach’s toccata style: scale runs, broken thirds, cadential turns.
+  // Bar 1 (Dm): rising D minor scale D4→D5, then falling back
+  // Bar 2 (C):  C major arpeggio + turn figures
+  // Bar 3 (Gm): G minor arpeggio run
+  // Bar 4 (A):  A major dominant resolution with C# (harmonic minor)
   MELODY: [
-    293.66, 349.23, 440.00, 587.33,  440.00, 349.23, 329.63, 293.66,
-    329.63, 392.00, 523.25, 659.25,  523.25, 392.00, 349.23, 329.63,
-    293.66, 349.23, 466.16, 587.33,  466.16, 349.23, 293.66, 233.08,
-    440.00, 554.37, 659.25, 440.00,  392.00, 329.63, 277.18, 220.00,
+    // Bar 1 — D minor ascending scale run
+    293.66, 329.63, 349.23, 392.00,  440.00, 466.16, 523.25, 587.33,
+    // Bar 1 — descend with passing notes
+    523.25, 466.16, 440.00, 392.00,  349.23, 329.63, 293.66, 261.63,
+    // Bar 2 — C major broken chord + sequence figure
+    261.63, 329.63, 392.00, 523.25,  392.00, 329.63, 261.63, 196.00,
+    // Bar 2 — return upward with approachnotes
+    261.63, 349.23, 440.00, 523.25,  466.16, 392.00, 349.23, 261.63,
+    // Bar 3 — G minor arpeggio + scale fragment
+    196.00, 233.08, 293.66, 349.23,  392.00, 349.23, 293.66, 233.08,
+    // Bar 3 — rising sequence (Gm→Dm) broken thirds
+    293.66, 349.23, 329.63, 392.00,  392.00, 466.16, 440.00, 523.25,
+    // Bar 4 — A major cadence: scale run up to E5 with C# (harmonic minor)
+    220.00, 277.18, 329.63, 440.00,  329.63, 277.18, 369.99, 440.00,
+    // Bar 4 — final flourish descending to low D (toccata ending gesture)
+    440.00, 554.37, 493.88, 440.00,  392.00, 329.63, 277.18, 220.00,
   ],
 
-  // ── 16 quarter-note walking bass (4 bars) ───────────────────────────────
-  // Each bar: root, fifth below, root, chord-third
+  // ── 16 quarter-note bass (4 bars) ─────────────────────────────────────
+  // Organum + walking bass: each beat gets one note, driving forward motion.
   BASS: [
-     73.42,  55.00,  73.42,  87.31,   // Dm: D2 A1 D2 F2
-     65.41,  49.00,  65.41,  82.41,   // C:  C2 G1 C2 E2
-     58.27,  43.65,  58.27,  73.42,   // Bb: Bb1 F1 Bb1 D2
-     55.00,  41.20,  55.00,  69.30,   // A:  A1 E1 A1 C#2
+     73.42,  87.31,  55.00,  73.42,   // Bar 1 Dm: D2 F2 A1 D2
+     65.41,  82.41,  65.41,  49.00,   // Bar 2 C:  C2 E2 C2 G1
+     49.00,  58.27,  73.42,  98.00,   // Bar 3 Gm: G1 Bb1 D2 G2
+     55.00,  69.30,  55.00, 110.00,   // Bar 4 A:  A1 C#2 A1 A2 (dominant)
   ],
 
-  pos: 0,         // melody position 0-31
-  nextTime: 0,    // AudioContext time for next scheduled note
+  pos: 0,
+  nextTime: 0,
   timerID: null,
 
-  // ── Start ────────────────────────────────────────────────────────────────
   start() {
     if (!SoundFX.ctx) SoundFX.init();
     this.ctx = SoundFX.ctx;
     if (this.ctx.state === 'suspended') this.ctx.resume();
-
-    // Master gain with fade-in
     this.masterGain = this.ctx.createGain();
     this.masterGain.gain.setValueAtTime(0.001, this.ctx.currentTime);
-    this.masterGain.gain.linearRampToValueAtTime(0.38, this.ctx.currentTime + 1.5);
+    this.masterGain.gain.linearRampToValueAtTime(0.35, this.ctx.currentTime + 1.5);
     this.masterGain.connect(this.ctx.destination);
-
     this.pos      = 0;
     this.nextTime = this.ctx.currentTime + 0.08;
     this.enabled  = true;
     this._tick();
   },
 
-  // ── Stop ─────────────────────────────────────────────────────────────────
   stop() {
     this.enabled = false;
     clearTimeout(this.timerID);
@@ -168,81 +174,72 @@ const MusicEngine = {
       const t = this.ctx.currentTime;
       this.masterGain.gain.setValueAtTime(this.masterGain.gain.value, t);
       this.masterGain.gain.linearRampToValueAtTime(0.001, t + 0.6);
-      const mg = this.masterGain;
-      this.masterGain = null;
+      const mg = this.masterGain; this.masterGain = null;
       setTimeout(() => { try { mg.disconnect(); } catch(e){} }, 700);
     }
   },
 
-  // ── Scheduler tick ───────────────────────────────────────────────────────
-  // Uses the "two clocks" pattern: setTimeout for rough scheduling,
-  // AudioContext.currentTime for sample-accurate note placement.
   _tick() {
     if (!this.enabled) return;
-    const LOOK = 0.1;  // schedule 100ms ahead
-    while (this.nextTime < this.ctx.currentTime + LOOK) {
+    while (this.nextTime < this.ctx.currentTime + 0.12) {
       const i = this.pos;
-      // Melody every eighth note
       this._playMelody(this.MELODY[i], this.nextTime);
-      // Bass every quarter note (every 2 melody positions)
-      if (i % 2 === 0) this._playBass(this.BASS[Math.floor(i / 2)], this.nextTime);
-      this.nextTime += this.E8L;
-      this.pos = (i + 1) % 32;
+      // Bass every quarter note (every 4 sixteenth notes)
+      if (i % 4 === 0) {
+        this._playBass(this.BASS[Math.floor(i / 4)], this.nextTime);
+        this._playBeat(this.nextTime);
+      }
+      this.nextTime += this.S16;
+      this.pos = (i + 1) % 64;
     }
-    this.timerID = setTimeout(() => this._tick(), 22);
+    this.timerID = setTimeout(() => this._tick(), 20);
   },
 
-  // ── Melody note: two detuned square oscillators + cyber echo tap ─────────
+  // Square-wave melody: very short staccato (harpsichord chop), slight detune
   _playMelody(freq, time) {
     if (!freq || !this.masterGain) return;
-    const dur = this.E8L * 0.52;    // staccato (harpsichord chop)
-
-    // Main voice + slight upper detune (digital chorus width)
-    [[0, 0.07], [9, 0.035]].forEach(([det, vol]) => {
+    const dur = this.S16 * 0.48;  // tight staccato — leaves space between notes
+    [[0, 0.065], [11, 0.028]].forEach(([det, vol]) => {
       const osc = this.ctx.createOscillator();
-      osc.type  = 'square';
-      osc.frequency.value = freq;
-      osc.detune.value    = det;
+      osc.type = 'square'; osc.frequency.value = freq; osc.detune.value = det;
       const g = this.ctx.createGain();
-      g.gain.setValueAtTime(0.001,  time);
-      g.gain.linearRampToValueAtTime(vol,   time + 0.004);
+      g.gain.setValueAtTime(0.001, time);
+      g.gain.linearRampToValueAtTime(vol,   time + 0.003);
       g.gain.exponentialRampToValueAtTime(0.001, time + dur);
       osc.connect(g); g.connect(this.masterGain);
-      osc.start(time); osc.stop(time + dur + 0.01);
+      osc.start(time); osc.stop(time + dur + 0.008);
     });
-
-    // Echo tap — offset by 2/3 of an eighth note, quieter and detuned
-    const echoT = time + this.E8L * 0.65;
-    const echo  = this.ctx.createOscillator();
-    echo.type   = 'square';
-    echo.frequency.value = freq;
-    echo.detune.value    = -6;
-    const eg = this.ctx.createGain();
-    eg.gain.setValueAtTime(0.001,   echoT);
-    eg.gain.linearRampToValueAtTime(0.028, echoT + 0.004);
-    eg.gain.exponentialRampToValueAtTime(0.001, echoT + dur);
-    echo.connect(eg); eg.connect(this.masterGain);
-    echo.start(echoT); echo.stop(echoT + dur + 0.01);
   },
 
-  // ── Bass note: filtered sawtooth, plucky baroque attack ─────────────────
+  // Filtered sawtooth bass: punchy attack, quick decay — drives the techno feel
   _playBass(freq, time) {
     if (!freq || !this.masterGain) return;
-    const dur = this.QL * 0.82;
+    const dur = this.QL * 0.78;
     const osc = this.ctx.createOscillator();
-    osc.type  = 'sawtooth';
-    osc.frequency.value = freq;
+    osc.type = 'sawtooth'; osc.frequency.value = freq;
     const lp = this.ctx.createBiquadFilter();
-    lp.type = 'lowpass';
-    lp.frequency.value = 320;
-    lp.Q.value = 1.8;
+    lp.type = 'lowpass'; lp.frequency.value = 300; lp.Q.value = 2.2;
     const g = this.ctx.createGain();
     g.gain.setValueAtTime(0.001,  time);
-    g.gain.linearRampToValueAtTime(0.48,  time + 0.012);
-    g.gain.exponentialRampToValueAtTime(0.10,  time + dur * 0.5);
+    g.gain.linearRampToValueAtTime(0.50,  time + 0.010);
+    g.gain.exponentialRampToValueAtTime(0.08,  time + dur * 0.45);
     g.gain.exponentialRampToValueAtTime(0.001, time + dur);
     osc.connect(lp); lp.connect(g); g.connect(this.masterGain);
     osc.start(time); osc.stop(time + dur + 0.01);
+  },
+
+  // Techno beat pulse: short sine-sweep kick on every quarter note
+  _playBeat(time) {
+    if (!this.masterGain) return;
+    const osc = this.ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(110, time);
+    osc.frequency.exponentialRampToValueAtTime(55, time + 0.055);
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0.38,  time);
+    g.gain.exponentialRampToValueAtTime(0.001, time + 0.07);
+    osc.connect(g); g.connect(this.masterGain);
+    osc.start(time); osc.stop(time + 0.08);
   },
 };
 
@@ -517,8 +514,9 @@ async function cpuTurn() {
   if (getLegalMovesJS(cells, cpuPlayer).length === 0) {
     SoundFX.playPass();
     setMoveInfo('⏭ Computer has no moves — passes');
-    setStatus('Your turn', 'your-turn');
-    if (checkGameOver()) return;
+    if (checkGameOver()) return;   // both pass → end game
+    renderBoard();                  // MUST refresh dots so human can see legal moves
+    setStatus('Your turn — computer passed', 'your-turn');
     return;
   }
 
@@ -574,6 +572,7 @@ async function cpuTurn() {
   if (getLegalMovesJS(cells, humanPlayer).length === 0) {
     SoundFX.playPass();
     setMoveInfo('⏭ You have no moves — auto-pass');
+    if (checkGameOver()) return;   // double-pass → end game
     setStatus('Thinking…', 'cpu-turn');
     setTimeout(cpuTurn, 800);
     return;

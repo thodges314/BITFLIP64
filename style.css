@@ -55,7 +55,7 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   padding: 1.5rem 1rem 0.5rem;
   overflow-x: hidden;
 }
@@ -65,9 +65,10 @@ body {
   width: 100%;
   max-width: 520px;
   margin: 0 auto;
+  flex: 1;                  /* expand to fill body → footer stays at bottom */
   display: flex;
   flex-direction: column;
-  align-items: stretch;   /* children fill full container width */
+  align-items: stretch;     /* children fill full container width */
   gap: 1.2rem;
 }
 
@@ -691,9 +692,9 @@ body {
 .footer {
   width: 100%;
   max-width: 520px;
+  margin: 2rem auto 0;    /* top gap + centered horizontally */
   text-align: center;
   padding: 0.6rem 0.5rem;
-  margin-top: 2rem;
   font-size: 0.65rem;
   color: var(--text-muted);
   border-top: 1px solid var(--border);

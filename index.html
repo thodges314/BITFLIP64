@@ -110,10 +110,14 @@
 
       <!-- Engine tech info -->
       <p class="engine-line">
-        <span class="tech-hl">⚡ WASM</span> &middot;
-        Negamax &middot; IDA* &middot; TT &middot;
-        Mobility &middot; Corner Weights &middot;
-        Move Order &middot; ∞ Endgame
+        <span class="tech-hl" data-tooltip="C++ engine compiled to WebAssembly — runs at near-native speed directly in your browser, no install needed">⚡ WASM</span> &middot;
+        <span data-tooltip="Alpha-Beta Negamax — prunes branches that can't change the outcome, cutting the search tree dramatically">Negamax</span> &middot;
+        <span data-tooltip="Iterative Deepening Alpha-Beta — searches depth 1, 2, 3… until time runs out, always keeping the best move found so far">IDA*</span> &middot;
+        <span data-tooltip="Transposition Table — a hash cache of visited board positions so identical states reached by different move orders aren't re-evaluated">TT</span> &middot;
+        <span data-tooltip="Mobility Heuristic — scores positions by the difference in legal moves available; restricting the opponent's options is a core Othello strategy">Mobility</span> &middot;
+        <span data-tooltip="Positional Weight Table — corners are permanent and score highest; X-squares (diagonal to corners) score lowest as they gift corners to the opponent">Corner Weights</span> &middot;
+        <span data-tooltip="Move Ordering — corners are searched first, X-squares last; good ordering maximises Alpha-Beta cutoffs and speeds up the search">Move Order</span> &middot;
+        <span data-tooltip="Perfect Endgame Solver — when ≤10–20 empty squares remain, switches to an exact disc-count search that finds the provably optimal result by force">&#x221e; Endgame</span>
       </p>
     </section>
 

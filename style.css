@@ -473,6 +473,7 @@ body {
   display: flex;
   gap: 0.6rem;
   width: 100%;
+  margin-top: 0.7rem;   /* extra breathing room above Resign */
 }
 
 .ctrl-btn {
@@ -587,14 +588,15 @@ body {
 }
 
 .engine-line {
-  font-size: 0.58rem;
+  font-size: 0.68rem;
   color: var(--text-muted);
-  opacity: 0.55;
+  opacity: 0.65;
   text-align: center;
-  line-height: 1.6;
+  line-height: 1.7;
   cursor: default;
   user-select: none;
   letter-spacing: 0.02em;
+  margin-top: 0.3rem;
 }
 
 /* Amber highlight for ⚡ WASM label inside text lines */
@@ -602,6 +604,68 @@ body {
   color: var(--lcd-amber);
   opacity: 1;
   font-weight: 600;
+}
+
+/* ── Delayed tooltips on engine-line terms ───────────────────────────────── */
+/* CSS-only: 1s transition-delay on appear, instant on hide */
+.engine-line [data-tooltip] {
+  position: relative;
+  cursor: help;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: rgba(122,127,154,0.4);
+  text-underline-offset: 3px;
+}
+
+.engine-line [data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(260px, 88vw);
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  background: var(--surface-2);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: var(--text);
+  font-size: 0.68rem;
+  font-weight: 400;
+  line-height: 1.45;
+  text-align: center;
+  white-space: normal;
+  z-index: 200;
+  pointer-events: none;
+  /* Hidden by default — fast fade out (no delay) */
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, visibility 0s 0.15s;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+
+/* Small arrow below the tooltip box */
+.engine-line [data-tooltip]::before {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 5px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: rgba(255,255,255,0.12);
+  z-index: 201;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, visibility 0s 0.15s;
+}
+
+/* Show after 1s hover — instant reveal, 1s delay */
+.engine-line [data-tooltip]:hover::after,
+.engine-line [data-tooltip]:hover::before {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.2s ease 1s, visibility 0s 1s;
 }
 
 /* Footer WASM pill */

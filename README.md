@@ -74,8 +74,14 @@ Legal move generation and flip computation both use the same direction-scan loop
 **Iterative deepening negamax alpha-beta:**
 1. Starts at depth 1, deepens until time limit is hit
 2. TT best move from the previous completed iteration tried first (dramatically improves pruning)
-3. Remaining moves ordered by `MOVE_ORDER[]` (corners → edges → interior → X-squares)
+3. Remaining moves sorted by **history score** (descending), then by static `MOVE_ORDER[]`
 4. Transposition table stores `(key, score, depth, flag, move)` with exact/lower/upper bound flags
+
+**Aspiration windows:**
+From depth 4 onward, each iteration opens with a narrow `[prevScore − 25, prevScore + 25]` window instead of `(−∞, +∞)`. A narrower window produces far more alpha-beta cutoffs in the common case where the score is stable across depths. On a fail-low or fail-high, the window widens by doubling the delta and re-searches at the same depth until the score falls inside — or the window expands to full range.
+
+**History heuristic:**
+A `history[64]` table accumulates `depth²` points every time a move causes a beta cutoff (`alpha ≥ beta`). This score is reset at the start of each move decision and builds up within the search tree across all branches and depths. `orderedMoves()` sorts non-TT moves by their history score descending, with the static positional `MOVE_ORDER` used as a tiebreaker via `std::stable_sort`. Moves that consistently produce cutoffs therefore float to the front of the list at the next depth, compounding the pruning benefit.
 
 **Perfect endgame intercept:**
 When the search depth within `negamax` reaches the number of empty squares and the position is within the endgame threshold (≤10 or ≤20 empty, per difficulty), the call is transparently redirected to `negamaxPerfect`. This means iterative deepening seeds the TT with well-ordered move hints before the exact deep search fires — far more efficient than a cold-start 20-ply search.

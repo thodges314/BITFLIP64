@@ -81,6 +81,12 @@
             data-tooltip="Iterative Deepening Alpha-Beta — searches depth 1, 2, 3… until time runs out, always returning the best move found at the deepest completed level">Iterative
             Deepening</span> &middot;
           <span
+            data-tooltip="Aspiration Windows — each new depth opens with a narrow score window around the previous result; more cutoffs mean the engine searches deeper in the same time budget">Aspiration
+            Windows</span> &middot;
+          <span
+            data-tooltip="History Heuristic — moves that caused alpha-beta cutoffs earn depth² points; high-scoring moves are tried first, improving pruning efficiency as the search deepens">History
+            Heuristic</span> &middot;
+          <span
             data-tooltip="Perfect Endgame Solver — when ≤10–20 empty squares remain, switches to an exact disc-count search that finds the provably optimal result by force">Perfect
             Endgame</span>
         </p>
@@ -145,8 +151,13 @@
           data-tooltip="Positional Weight Table — corners are permanent and score highest; X-squares (diagonal to corners) score lowest as they gift corners to the opponent">Corner
           Weights</span> &middot;
         <span
-          data-tooltip="Move Ordering — corners are searched first, X-squares last; good ordering maximises Alpha-Beta cutoffs and speeds up the search">Move
+          data-tooltip="Move Ordering — TT best move first, then history-scored moves, then positional priority (corners first, X-squares last); good ordering maximises Alpha-Beta cutoffs">Move
           Order</span> &middot;
+        <span
+          data-tooltip="Aspiration Windows — each new depth starts with a narrow α-β window around the previous score; faster cutoffs mean the engine reaches deeper depths within the time limit">Asp.
+          Windows</span> &middot;
+        <span
+          data-tooltip="History Heuristic — beta-cutoff moves earn depth² points stored in a 64-entry table; top-scoring squares are searched first, compounding pruning efficiency across depths">History</span> &middot;
         <span
           data-tooltip="Perfect Endgame Solver — when ≤10–20 empty squares remain, switches to an exact disc-count search that finds the provably optimal result by force">&#x221e;
           Endgame</span>

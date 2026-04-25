@@ -59,15 +59,15 @@
           </button>
         </div>
 
-        <!-- Tech stack badges -->
-        <div class="tech-badges">
-          <span class="tech-badge wasm-badge">⚡ WebAssembly</span>
-          <span class="tech-badge">C++ Engine</span>
-          <span class="tech-badge">64-bit Bitboard</span>
-          <span class="tech-badge">Alpha-Beta Negamax</span>
-          <span class="tech-badge">Iterative Deepening</span>
-          <span class="tech-badge">Perfect Endgame</span>
-        </div>
+        <!-- Tech stack info line -->
+        <p class="tech-line">
+          <span class="tech-hl">⚡ WebAssembly</span> &middot;
+          C++ Engine &middot;
+          64-bit Bitboard &middot;
+          Alpha-Beta Negamax &middot;
+          Iterative Deepening &middot;
+          Perfect Endgame
+        </p>
       </div>
     </section>
 
@@ -108,17 +108,13 @@
         <button class="ctrl-btn replay-btn" id="replay-btn" hidden onclick="resetToSideSelect()">New Game</button>
       </div>
 
-      <!-- Engine tech chips (always visible during gameplay) -->
-      <div class="engine-chips">
-        <span class="engine-chip wasm-chip">⚡ WASM</span>
-        <span class="engine-chip">Negamax</span>
-        <span class="engine-chip">IDA*</span>
-        <span class="engine-chip">TT</span>
-        <span class="engine-chip">Mobility</span>
-        <span class="engine-chip">Corner Weights</span>
-        <span class="engine-chip">Move Order</span>
-        <span class="engine-chip">∞ Endgame</span>
-      </div>
+      <!-- Engine tech info -->
+      <p class="engine-line">
+        <span class="tech-hl">⚡ WASM</span> &middot;
+        Negamax &middot; IDA* &middot; TT &middot;
+        Mobility &middot; Corner Weights &middot;
+        Move Order &middot; ∞ Endgame
+      </p>
     </section>
 
     <!-- ══ Engine status ════════════════════════════════════════════════════ -->

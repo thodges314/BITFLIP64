@@ -574,72 +574,34 @@ body {
 .modal-btn.secondary { background: transparent; color: var(--text); }
 .modal-btn.secondary:hover { background: var(--surface-2); }
 
-/* ── Tech stack badges (select card — read-only info) ──────────────────────── */
-.tech-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
+/* ── Tech info lines (read-only metadata, no pill/button shape) ──────────────── */
+.tech-line {
   margin-top: 1.2rem;
-  justify-content: center;
-}
-
-.tech-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.18rem 0.6rem;
-  border-radius: 999px;
   font-size: 0.64rem;
-  font-weight: 500;
-  font-style: italic;
-  letter-spacing: 0.04em;
-  border: 1px solid rgba(255,255,255,0.06);
-  background: rgba(255,255,255,0.03);
   color: var(--text-muted);
-  opacity: 0.8;
+  opacity: 0.65;
+  text-align: center;
+  line-height: 1.7;
   cursor: default;
   user-select: none;
-  pointer-events: none;
 }
 
-.wasm-badge {
-  border-color: rgba(255, 184, 0, 0.35);
-  color: rgba(255, 184, 0, 0.75);
-  background: rgba(255, 184, 0, 0.05);
-  font-style: normal;
-  font-weight: 600;
-}
-
-/* ── Engine tech chips (gameplay — compact row) ─────────────────────────────── */
-.engine-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-  justify-content: center;
-  padding: 0.1rem 0;
-}
-
-.engine-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.12rem 0.45rem;
-  border-radius: 999px;
+.engine-line {
   font-size: 0.58rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  border: 1px solid rgba(255,255,255,0.07);
-  background: rgba(255,255,255,0.03);
-  color: rgba(122, 127, 154, 0.7);   /* text-muted, dimmer */
+  color: var(--text-muted);
+  opacity: 0.55;
+  text-align: center;
+  line-height: 1.6;
   cursor: default;
   user-select: none;
-  pointer-events: none;
+  letter-spacing: 0.02em;
 }
 
-.wasm-chip {
-  border-color: rgba(255, 184, 0, 0.4);
+/* Amber highlight for ⚡ WASM label inside text lines */
+.tech-hl {
   color: var(--lcd-amber);
-  background: rgba(255, 184, 0, 0.06);
-  text-shadow: 0 0 6px rgba(255, 184, 0, 0.35);
+  opacity: 1;
+  font-weight: 600;
 }
 
 /* Footer WASM pill */

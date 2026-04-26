@@ -168,7 +168,7 @@ public:
             default: timeLimitMs = requestedTimeLimitMs; endgameThresh = 32; maxDepth = 60; break;
         }
 
-        return getBestMoveAB(board, isBlack, maxDepth, endgameThresh);
+        return getBestMoveAB(board, isBlack, difficulty, maxDepth, endgameThresh);
     }
 
 private:
@@ -491,7 +491,7 @@ private:
     }
 
     // ── Iterative deepening driver ────────────────────────────────────────────
-    int getBestMoveAB(const OthelloBoard& board, bool isBlack, int maxDepth, int endgameThresh) {
+    int getBestMoveAB(const OthelloBoard& board, bool isBlack, int difficulty, int maxDepth, int endgameThresh) {
         uint64_t legalMask = board.getLegalMoves(isBlack);
         if (legalMask == 0) return OthelloBoard::PASS;
 
@@ -503,7 +503,8 @@ private:
         // Compute canonical D4 form, look up in book, reverse transform.
         // Sets lastMoveWasBook = true on hit (queried by wasm_wasBookMove).
         lastMoveWasBook = false;
-        if (board.emptyCount() >= 28) {
+        int bookThresh = (difficulty == 2) ? 28 : (difficulty == 1 ? 44 : 65);
+        if (board.emptyCount() >= bookThresh) {
             auto [cb, cw, t] = canonForm(board.black, board.white);
             uint64_t key = OpeningBook::hash_pos(cb, cw);
             int canon_cell  = OpeningBook::lookup(key);

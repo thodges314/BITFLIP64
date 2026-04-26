@@ -61,6 +61,7 @@
             <button class="time-btn active" id="time-5s" data-time="5000">5s</button>
             <button class="time-btn" id="time-10s" data-time="10000">10s</button>
             <button class="time-btn" id="time-15s" data-time="15000">15s</button>
+            <button class="time-btn" id="time-inf" data-time="0" style="display: none;" title="Desktop Only: Infinite Analysis">∞</button>
           </div>
         </div>
 
@@ -142,6 +143,16 @@
       <!-- 8×8 Othello board -->
       <div class="board-outer">
         <div class="board" id="board"></div>
+      </div>
+
+      <!-- Infinite Analysis HUD -->
+      <div id="infinite-hud" style="display: none; margin-top: 1rem; border: 1px solid var(--accent); padding: 0.5rem 1rem; border-radius: 8px; background: rgba(0,255,204,0.05); align-items: center; justify-content: space-between;">
+        <div style="font-family: var(--font-mono); font-size: 0.9rem; color: var(--accent); text-align: left;">
+          <div id="hud-depth" style="margin-bottom: 0.2rem;">Depth: --</div>
+          <div id="hud-eval" style="margin-bottom: 0.2rem;">Eval: --</div>
+          <div id="hud-nodes">Nodes: --</div>
+        </div>
+        <button id="force-move-btn" class="force-btn" style="flex: 0 0 auto; padding: 0.4rem 0.8rem; font-size: 0.85rem; border: 1px solid #f87171; border-radius: 4px; color: #f87171; font-weight: bold; background: rgba(248,113,113,0.1); cursor: pointer;">PLAY NOW</button>
       </div>
 
       <!-- Status & move info -->

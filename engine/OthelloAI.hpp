@@ -29,6 +29,11 @@
 #include <tuple>
 #include <vector>
 
+extern "C" int checkAbortFlag();
+extern "C" void reportProgress(int depth, int score, double nodes, int bestMove);
+
+const int INF = 100000;
+
 // ── Positional weight table ───────────────────────────────────────────────────
 // Corners (+120) are the strongest positions; X-squares (-40, diagonal to
 // corners) are the weakest because they gift corners to the opponent.
@@ -277,6 +282,9 @@ private:
 
     // ── Time check ────────────────────────────────────────────────────────────
     bool timeUp() {
+        if (checkAbortFlag()) return true;
+        if (timeLimitMs <= 0) return false;
+        
         auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::steady_clock::now() - searchStart).count();
         return elapsed >= timeLimitMs;
@@ -570,7 +578,11 @@ private:
                     if (val > searchAlpha) searchAlpha = val;
                 }
 
-                if (timeLimitHit) break;
+                if (timeLimitHit && depth > 1) break;
+                
+                int best = bestScore;
+                reportProgress(depth, best, (double)nodesSearched, bestAtDepth);
+                if (best >= INF - 100 || best <= -INF + 100) break;
 
                 if (bestScore <= alpha) {
                     // Fail-low: the position is worse than expected.

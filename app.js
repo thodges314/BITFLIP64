@@ -58,7 +58,17 @@ function workerRequest(type, payload) {
   });
 }
 
+let currentInfiniteMove = -1;
+let currentEmptySquares = 60; // default for start
+
 function onWorkerMessage({ data }) {
+  if (data.type === 'progress') {
+    document.getElementById('hud-depth').textContent = `Depth: ${data.depth}/${currentEmptySquares}`;
+    document.getElementById('hud-eval').textContent = `Eval: ${(data.score / 100).toFixed(2)}`;
+    document.getElementById('hud-nodes').textContent = `Nodes: ${(data.nodes / 1000000).toFixed(1)}M`;
+    currentInfiniteMove = data.bestMove;
+    return;
+  }
   const pending = _workerPending[data.id];
   if (!pending) return;
   delete _workerPending[data.id];
@@ -264,6 +274,47 @@ const musicIcon = document.getElementById('music-icon');
 const timeLimitContainer = document.getElementById('time-limit-container');
 
 let timeLimitMs = 5000;
+let sharedAbortBuffer = null;
+let abortFlag = null;
+
+// Desktop Engine Mode Detection
+console.log('Environment Debug => crossOriginIsolated:', crossOriginIsolated);
+
+const isDesktop = !window.matchMedia("(pointer: coarse)").matches;
+if (isDesktop) {
+  document.getElementById('time-inf').style.display = 'inline-block';
+}
+
+if (typeof SharedArrayBuffer !== 'undefined') {
+  console.log('✅ SharedArrayBuffer is ACTIVE. We will use zero-overhead native C++ Thread Abortion.');
+  sharedAbortBuffer = new SharedArrayBuffer(4);
+  abortFlag = new Int32Array(sharedAbortBuffer);
+} else {
+  console.warn('❌ SharedArrayBuffer is DISABLED. We will use Harsh Worker Assassination for Infinite mode.');
+}
+
+document.getElementById('force-move-btn').addEventListener('click', () => {
+  if (abortFlag) {
+    Atomics.store(abortFlag, 0, 1);
+  } else {
+    // Harsh Worker Assassination Fallback
+    if (currentInfiniteMove >= 0 && engineWorker) {
+      engineWorker.terminate();
+      engineReady = false;
+      document.getElementById('infinite-hud').style.display = 'none';
+      
+      const reqKeys = Object.keys(_workerPending);
+      if (reqKeys.length > 0) {
+        const pending = _workerPending[reqKeys[0]];
+        delete _workerPending[reqKeys[0]];
+        // Artificially resolve the promise using the deepest move recorded
+        pending.resolve({ move: currentInfiniteMove, fromBook: false });
+      }
+      // Respin the worker from scratch for the next turn
+      initEngine();
+    }
+  }
+});
 
 document.querySelectorAll('.time-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -548,6 +599,17 @@ async function cpuTurn() {
 
   const t0 = performance.now();
 
+  currentEmptySquares = cells.filter(c => c === 0).length;
+
+  if (timeLimitMs === 0) {
+    if (abortFlag) Atomics.store(abortFlag, 0, 0); // reset abort flag
+    currentInfiniteMove = -1; // reset fallback move tracker
+    document.getElementById('infinite-hud').style.display = 'flex';
+    document.getElementById('hud-depth').textContent = `Depth: --/${currentEmptySquares}`;
+    document.getElementById('hud-eval').textContent = 'Eval: --';
+    document.getElementById('hud-nodes').textContent = 'Nodes: --';
+  }
+
   let move = -1;
   let fromBook = false;
   try {
@@ -556,14 +618,16 @@ async function cpuTurn() {
       isBlack: cpuPlayer === 1,
       difficulty,
       timeLimitMs,
+      abortBuffer: sharedAbortBuffer
     });
     move     = result.move;
     fromBook = result.fromBook === true;
   } catch (err) {
     console.error('Worker error:', err);
     move = -1;
+  } finally {
+    document.getElementById('infinite-hud').style.display = 'none';
   }
-
   const ms = Math.round(performance.now() - t0);
   unmarkThinking();
 
@@ -714,7 +778,7 @@ async function initEngine() {
     // The ?v= cache-buster ensures the browser always loads the current worker
     // script. Update this string on every engine-worker.js deployment to avoid
     // mismatches between a stale worker and freshly-built WASM.
-    const WORKER_VERSION = '20250426-1';
+    const WORKER_VERSION = '20250426-3';
     engineWorker = new Worker(`public/engine-worker.js?v=${WORKER_VERSION}`);
 
     await new Promise((resolve, reject) => {

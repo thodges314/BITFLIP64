@@ -57,7 +57,12 @@ self.onmessage = function ({ data }) {
   const { id, type, payload } = data;
   try {
     if (type === 'getBestMove') {
-      const { cells, isBlack, difficulty, timeLimitMs } = payload;
+      const { cells, isBlack, difficulty, timeLimitMs, abortBuffer } = payload;
+      if (abortBuffer) {
+          self.abortFlag = new Int32Array(abortBuffer);
+      } else {
+          self.abortFlag = null;
+      }
 
       // Write board into WASM heap (live access, safe after memory growth)
       const base = bufPtr >> 2;  // byte offset → Int32 index

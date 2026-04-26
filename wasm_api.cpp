@@ -15,6 +15,19 @@
 
 static OthelloAI* g_ai = nullptr;
 
+EM_JS(int, checkAbortFlag, (), {
+    if (typeof self.abortFlag !== 'undefined' && self.abortFlag !== null) {
+        return Atomics.load(self.abortFlag, 0);
+    }
+    return 0;
+});
+
+EM_JS(void, reportProgress, (int depth, int score, double nodes, int bestMove), {
+    if (typeof self.postMessage !== 'undefined') {
+        self.postMessage({ type: 'progress', depth: depth, score: score, nodes: nodes, bestMove: bestMove });
+    }
+});
+
 // ── Board reconstruction from flat int array ──────────────────────────────────
 static OthelloBoard boardFromCells(const int* cells) {
     uint64_t black = 0, white = 0;

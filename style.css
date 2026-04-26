@@ -766,3 +766,19 @@ body {
 }
 .footer-gh { opacity: 0.6; transition: opacity 0.2s; }
 .footer-gh:hover { opacity: 1; color: var(--text) !important; }
+
+.verified-tag {
+  font-size: 0.75rem;
+  opacity: 0.8;
+  color: #fbbf24; /* Amber/Gold for verification */
+  margin-left: 0.4rem;
+  text-transform: uppercase;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  animation: hud-flicker 2s infinite alternate;
+}
+
+@keyframes hud-flicker {
+  0% { opacity: 0.5; text-shadow: 0 0 2px rgba(251,191,36,0.2); }
+  100% { opacity: 1; text-shadow: 0 0 8px rgba(251,191,36,0.5); }
+}

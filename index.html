@@ -148,10 +148,10 @@
       <!-- Infinite Analysis HUD -->
       <div id="infinite-hud" class="hud-container" style="display: none; margin-top: 1rem; border: 1px solid var(--accent); padding: 0.5rem 1rem; border-radius: 8px; background: rgba(0,255,204,0.05); align-items: center; justify-content: space-between;">
         <div style="font-family: var(--font-mono); font-size: 0.9rem; color: var(--accent); text-align: left;">
-          <div id="hud-depth" style="margin-bottom: 0.2rem;" data-tooltip="Search Depth ([Current]/[Max]): Iterative deepening searches level by level. Every +1 depth roughly triples the computational load.">Depth: --</div>
+          <div id="hud-depth" style="margin-bottom: 0.2rem;"><span data-tooltip="Search Depth ([Current]/[Max]): Every +1 depth roughly triples the load. Even depths (16, 18, 20) are typically more reliable. Stopping during a search returns the last fully completed depth.">Depth: --</span></div>
           <div id="hud-eval" style="margin-bottom: 0.2rem;" data-tooltip="Evaluation Score (centi-discs): Positive values favor Black (+1.00 = 1 disc advantage). Stable scores indicate high-confidence moves.">Eval: --</div>
           <div id="hud-nodes" style="margin-bottom: 0.2rem;" data-tooltip="Search Nodes: Total board states analyzed. High node counts with stable evaluations confirm the move is positionally sound.">Nodes: --</div>
-          <div id="hud-time" data-tooltip="Elapsed Time: Wall-clock time searching. Estimates: ~5s for D14, ~25s for D16, ~2m+ for D18. D51: ~10^15 years (Theoretical Heat Death). Recommendation: Play at D16-D20 for Super-GM strength.">Elapsed: 0.0s</div>
+          <div id="hud-time" data-tooltip="Elapsed Time: Wall-clock time searching. Estimates: ~25s for D16, ~2m+ for D18, ~25m+ for D20. D51: ~10^15 years (Theoretical Heat Death). Recommendation: Play at D16-D20 for Super-GM strength.">Elapsed: 0.0s</div>
         </div>
         <button id="force-move-btn" class="force-btn" style="flex: 0 0 auto; padding: 0.4rem 0.8rem; font-size: 0.85rem; border: 1px solid #f87171; border-radius: 4px; color: #f87171; font-weight: bold; background: rgba(248,113,113,0.1); cursor: pointer;">PLAY NOW</button>
       </div>

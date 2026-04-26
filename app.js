@@ -64,7 +64,7 @@ let hudInterval = null;
 
 function onWorkerMessage({ data }) {
   if (data.type === 'progress') {
-    document.getElementById('hud-depth').textContent = `Depth: ${data.depth}/${currentEmptySquares}`;
+    document.getElementById('hud-depth').innerHTML = `<span data-tooltip="Search Depth ([Current]/[Max]): Every +1 depth roughly triples the load. Even depths (16, 18, 20) are typically more reliable. Stopping during a search returns the last fully completed depth.">Depth: ${data.depth}/${currentEmptySquares}</span> <span class="verified-tag" data-tooltip="MILESTONE: The engine has fully analyzed every possible move branch up to this depth. You are guaranteed this level of quality if you play now.">(Verified)</span>`;
     document.getElementById('hud-eval').textContent = `Eval: ${(data.score / 100).toFixed(2)}`;
     document.getElementById('hud-nodes').textContent = `Nodes: ${(data.nodes / 1000000).toFixed(1)}M`;
     currentInfiniteMove = data.bestMove;
@@ -606,7 +606,7 @@ async function cpuTurn() {
     if (abortFlag) Atomics.store(abortFlag, 0, 0); // reset abort flag
     currentInfiniteMove = -1; // reset fallback move tracker
     document.getElementById('infinite-hud').style.display = 'flex';
-    document.getElementById('hud-depth').textContent = `Depth: --/${currentEmptySquares}`;
+    document.getElementById('hud-depth').innerHTML = `<span data-tooltip="Search Depth ([Current]/[Max]): Every +1 depth roughly triples the load. Even depths (16, 18, 20) are typically more reliable. Stopping during a search returns the last fully completed depth.">Depth: --/${currentEmptySquares}</span> <span class="verified-tag">...</span>`;
     document.getElementById('hud-eval').textContent = 'Eval: --';
     document.getElementById('hud-nodes').textContent = 'Nodes: --';
     document.getElementById('hud-time').textContent = 'Elapsed: 0.0s';

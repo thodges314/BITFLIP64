@@ -640,7 +640,8 @@ body {
 /* ── Delayed tooltips on engine-line and tech-line terms ───────────────── */
 /* CSS-only: 1s transition-delay on appear, instant on hide */
 .engine-line [data-tooltip],
-.tech-line [data-tooltip] {
+.tech-line [data-tooltip],
+.hud-container [data-tooltip] {
   position: relative;
   cursor: help;
   text-decoration: underline;
@@ -650,7 +651,8 @@ body {
 }
 
 .engine-line [data-tooltip]::after,
-.tech-line [data-tooltip]::after {
+.tech-line [data-tooltip]::after,
+.hud-container [data-tooltip]::after {
   content: attr(data-tooltip);
   position: absolute;
   bottom: calc(100% + 10px);
@@ -678,7 +680,8 @@ body {
 
 /* Small arrow */
 .engine-line [data-tooltip]::before,
-.tech-line [data-tooltip]::before {
+.tech-line [data-tooltip]::before,
+.hud-container [data-tooltip]::before {
   content: '';
   position: absolute;
   bottom: calc(100% + 5px);
@@ -697,7 +700,9 @@ body {
 .engine-line [data-tooltip]:hover::after,
 .engine-line [data-tooltip]:hover::before,
 .tech-line [data-tooltip]:hover::after,
-.tech-line [data-tooltip]:hover::before {
+.tech-line [data-tooltip]:hover::before,
+.hud-container [data-tooltip]:hover::after,
+.hud-container [data-tooltip]:hover::before {
   opacity: 1;
   visibility: visible;
   transition: opacity 0.2s ease 1s, visibility 0s 1s;

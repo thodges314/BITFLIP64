@@ -60,6 +60,7 @@ function workerRequest(type, payload) {
 
 let currentInfiniteMove = -1;
 let currentEmptySquares = 60; // default for start
+let hudInterval = null;
 
 function onWorkerMessage({ data }) {
   if (data.type === 'progress') {
@@ -608,6 +609,13 @@ async function cpuTurn() {
     document.getElementById('hud-depth').textContent = `Depth: --/${currentEmptySquares}`;
     document.getElementById('hud-eval').textContent = 'Eval: --';
     document.getElementById('hud-nodes').textContent = 'Nodes: --';
+    document.getElementById('hud-time').textContent = 'Elapsed: 0.0s';
+    
+    if (hudInterval) clearInterval(hudInterval);
+    hudInterval = setInterval(() => {
+      const elapsed = (performance.now() - t0) / 1000;
+      document.getElementById('hud-time').textContent = `Elapsed: ${elapsed.toFixed(1)}s`;
+    }, 100);
   }
 
   let move = -1;
@@ -626,6 +634,10 @@ async function cpuTurn() {
     console.error('Worker error:', err);
     move = -1;
   } finally {
+    if (hudInterval) {
+      clearInterval(hudInterval);
+      hudInterval = null;
+    }
     document.getElementById('infinite-hud').style.display = 'none';
   }
   const ms = Math.round(performance.now() - t0);

@@ -772,6 +772,9 @@ function startGame(human) {
   humanPlayer = human;
   cpuPlayer = human === 1 ? 2 : 1;
 
+  // Clear persistent search cache for the new game
+  workerRequest('resetCache').catch(err => console.error('Cache reset failed:', err));
+
   // Standard Othello start
   cells = new Array(CELLS).fill(0);
   cells[27] = 2; cells[36] = 2;  // White: d4, e5

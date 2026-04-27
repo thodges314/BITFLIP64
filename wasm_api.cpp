@@ -61,6 +61,11 @@ int wasm_getBestMove(const int* cells, int isBlack, int difficulty, int timeLimi
     return g_ai->getBestMove(board, isBlack == 1, difficulty, timeLimitMs);
 }
 
+EMSCRIPTEN_KEEPALIVE
+void wasm_resetCache() {
+    ttClear();
+}
+
 // ── wasm_wasBookMove ──────────────────────────────────────────────────────────
 // Returns 1 if the most recent wasm_getBestMove() was served from the
 // opening book (instant lookup), 0 if it required an alpha-beta search.

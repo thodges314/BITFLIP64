@@ -80,6 +80,9 @@ self.onmessage = function ({ data }) {
       const fromBook = engine.ccall('wasm_wasBookMove', 'number', [], []) === 1;
 
       self.postMessage({ id, type: 'bestMove', payload: { move, fromBook } });
+    } else if (type === 'resetCache') {
+      engine.ccall('wasm_resetCache', null, [], []);
+      self.postMessage({ id, type: 'resetCache', payload: true });
     }
   } catch (err) {
     self.postMessage({ id, error: String(err) });

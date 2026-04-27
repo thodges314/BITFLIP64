@@ -525,7 +525,7 @@ private:
             }
         }
 
-        ttClear();
+        // Removed ttClear() to allow cache persistence between turns
         std::fill(std::begin(history), std::end(history), 0);
         std::memset(killers, -1, sizeof(killers));
         int bestMove  = __builtin_ctzll(legalMask);

@@ -2,7 +2,7 @@ CXX      = em++
 CXXFLAGS = -std=c++17 -O3 -flto -I.
 
 EM_FLAGS  = \
-  -s EXPORTED_FUNCTIONS='["_wasm_init","_wasm_getBestMove","_wasm_wasBookMove","_wasm_getLegalMoves","_wasm_getScore","_malloc","_free"]' \
+  -s EXPORTED_FUNCTIONS='["_wasm_init","_wasm_getBestMove","_wasm_resetCache","_wasm_wasBookMove","_wasm_getLegalMoves","_wasm_getScore","_malloc","_free"]' \
   -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","HEAP32","HEAPU8","getValue","setValue"]' \
   -s ALLOW_MEMORY_GROWTH=1 \
   -s INITIAL_MEMORY=268435456 \

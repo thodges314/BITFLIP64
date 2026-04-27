@@ -62,6 +62,35 @@ let currentInfiniteMove = -1;
 let currentEmptySquares = 60; // default for start
 let hudInterval = null;
 
+function formatElapsedTime(totalSeconds) {
+  const years = Math.floor(totalSeconds / 31536000);
+  const days = Math.floor((totalSeconds % 31536000) / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  const pad = (n) => n.toString().padStart(2, '0');
+  const dec = (seconds % 1).toFixed(1).substring(2);
+  const secStr = `${pad(Math.floor(seconds))}.${dec}`;
+
+  const yearLabel = years === 1 ? 'year' : 'years';
+  const dayLabel = days === 1 ? 'day' : 'days';
+
+  if (years > 0) {
+    return `${years} ${yearLabel} ${days} ${dayLabel} ${pad(hours)}:${pad(minutes)}:${secStr}`;
+  }
+  if (days > 0) {
+    return `${days} ${dayLabel} ${pad(hours)}:${pad(minutes)}:${secStr}`;
+  }
+  if (hours > 0) {
+    return `${hours}:${pad(minutes)}:${secStr}`;
+  }
+  if (minutes > 0) {
+    return `${minutes}:${secStr}`;
+  }
+  return `${totalSeconds.toFixed(1)}s`;
+}
+
 function onWorkerMessage({ data }) {
   if (data.type === 'progress') {
     document.getElementById('hud-depth').innerHTML = `<span data-tooltip="Search Depth ([Current]/[Max]): Every +1 depth roughly triples the load. Even depths (16, 18, 20) are typically more reliable. Stopping during a search returns the last fully completed depth.">Depth: ${data.depth}/${currentEmptySquares}</span> <span class="verified-tag" data-tooltip="MILESTONE: The engine has fully analyzed every possible move branch up to this depth. You are guaranteed this level of quality if you play now.">(Verified)</span>`;
@@ -614,7 +643,7 @@ async function cpuTurn() {
     if (hudInterval) clearInterval(hudInterval);
     hudInterval = setInterval(() => {
       const elapsed = (performance.now() - t0) / 1000;
-      document.getElementById('hud-time').textContent = `Elapsed: ${elapsed.toFixed(1)}s`;
+      document.getElementById('hud-time').textContent = `Elapsed: ${formatElapsedTime(elapsed)}`;
     }, 100);
   }
 

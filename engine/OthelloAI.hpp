@@ -536,7 +536,10 @@ private:
         // narrow enough to produce meaningful cutoffs in the midgame.
         static constexpr int ASPIRATION_DELTA = 25;
 
+        int emptyCount = board.emptyCount();
         for (int depth = 1; depth <= maxDepth && !timeLimitHit; depth++) {
+            // Cap at mathematical horizon if endgame solver is engaged
+            if (emptyCount <= endgameThresh && depth > emptyCount) break;
 
             int alpha, beta;
 

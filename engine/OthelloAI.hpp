@@ -170,7 +170,7 @@ public:
         switch (difficulty) {
             case 0:  timeLimitMs = 200;  endgameThresh =  0; maxDepth =  3; break;
             case 1:  timeLimitMs = 1200; endgameThresh = 10; maxDepth = 60; break;
-            default: timeLimitMs = requestedTimeLimitMs; endgameThresh = 32; maxDepth = 60; break;
+            default: timeLimitMs = requestedTimeLimitMs; endgameThresh = 24; maxDepth = 60; break;
         }
 
         return getBestMoveAB(board, isBlack, difficulty, maxDepth, endgameThresh);
@@ -405,7 +405,7 @@ private:
         if (timeLimitHit) return 0;
 
         int empty = board.emptyCount();
-        if (depth >= empty || empty <= endgameThresh) {
+        if (empty <= endgameThresh && depth >= empty) {
             return negamaxPerfect(board, isBlack, alpha, beta);
         }
 

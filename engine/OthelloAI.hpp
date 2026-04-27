@@ -405,7 +405,7 @@ private:
         if (timeLimitHit) return 0;
 
         int empty = board.emptyCount();
-        if (empty <= endgameThresh && depth >= empty) {
+        if (depth >= empty || empty <= endgameThresh) {
             return negamaxPerfect(board, isBlack, alpha, beta);
         }
 
@@ -585,7 +585,13 @@ private:
                 
                 int best = bestScore;
                 reportProgress(depth, best, (double)nodesSearched, bestAtDepth);
-                if (best >= INF - 100 || best <= -INF + 100) break;
+                
+                // If we've solved the board to the horizon or found a mate/win, 
+                // we stop immediately even in infinite mode.
+                if (depth >= emptyCount || best >= INF - 100 || best <= -INF + 100) {
+                    timeLimitHit = true; // Signals we're done
+                    break;
+                }
 
                 if (bestScore <= alpha) {
                     // Fail-low: the position is worse than expected.

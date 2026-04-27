@@ -822,7 +822,7 @@ async function initEngine() {
     // The ?v= cache-buster ensures the browser always loads the current worker
     // script. Update this string on every engine-worker.js deployment to avoid
     // mismatches between a stale worker and freshly-built WASM.
-    const WORKER_VERSION = '20250426-4';
+    const WORKER_VERSION = '20250426-5';
     engineWorker = new Worker(`public/engine-worker.js?v=${WORKER_VERSION}`);
 
     await new Promise((resolve, reject) => {
